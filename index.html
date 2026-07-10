@@ -231,13 +231,254 @@
             let row = [""];
             let inQuotes = false;
 
+            // Rilevamento automatico del separatore (virgola o punto e virgola)
+            const firstLine = text.split('\n')[0];
+            const separator = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+
             for (let i = 0; i < text.length; i++) {
                 let c = text[i];
                 let next = text[i+1];
                 if (c === '"') {
                     if (inQuotes && next === '"') { row[row.length - 1] += '"'; i++; }
                     else { inQuotes = !inQuotes; }
-                } else if (c === ',' && !inQuotes) {
+                } else if (c === separator && !inQuotes) {
                     row.push('');
                 } else if ((c === '\r' || c === '\n') && !inQuotes) {
-                    if (c
+                    if (c === '\r' && next === '\n') { i++; }
+                    lines.push(row);
+                    row = [''];
+                } else {
+                    row[row.length - 1] += c;
+                }
+            }
+            if (row.length > 1 || row[0] !== '') lines.push(row);
+            if (lines.length < 2) return;
+
+            const headers = lines[0].map(h => h.trim());
+            
+            const titleIdx = headers.indexOf('Title');
+            const authorIdx = headers.indexOf('Author');
+            const ratingIdx = headers.indexOf('My Rating');
+            const pagesIdx = headers.indexOf('Number of Pages');
+            const shelvesIdx = headers.indexOf('Bookshelves');
+            const pubYearIdx = headers.indexOf('Original Publication Year');
+            const fallbackYearIdx = headers.indexOf('Year Published');
+            const dateReadIdx = headers.indexOf('Date Read');
+
+            const books = [];
+            for(let i=1; i<lines.length; i++) {
+                const data = lines[i];
+                if (data.length <= Math.max(titleIdx, authorIdx, ratingIdx)) continue;
+                
+                let rating = parseFloat(data[ratingIdx]) || 0;
+                let pages = parseFloat(data[pagesIdx]) || 0;
+                let year = parseFloat(data[pubYearIdx]) || parseFloat(data[fallbackYearIdx]) || null;
+                
+                let readYear = null;
+                if (data[dateReadIdx]) {
+                    const match = data[dateReadIdx].match(/(\d{4})/);
+                    if (match) readYear = parseInt(match[1]);
+                }
+                
+                books.push({
+                    title: data[titleIdx],
+                    author: data[authorIdx],
+                    rating: rating,
+                    pages: pages,
+                    shelves: data[shelvesIdx] ? data[shelvesIdx].split(',').map(s => s.trim()) : [],
+                    year: year,
+                    readYear: readYear
+                });
+            }
+
+            renderDashboard(books);
+        }
+
+        let charts = {};
+
+        function renderDashboard(books) {
+            document.getElementById('placeholder').style.display = 'none';
+            document.getElementById('dashboardContent').style.display = 'grid';
+
+            let totalGlobalRating = 0;
+            let totalGlobalCount = 0;
+
+            // Timelines
+            const timelineData = {};
+            books.forEach(b => {
+                if (b.rating > 0) {
+                    totalGlobalRating += b.rating;
+                    totalGlobalCount += 1;
+                }
+                if (b.readYear && b.readYear >= 1990) {
+                    if (!timelineData[b.readYear]) timelineData[b.readYear] = { books: 0, pages: 0 };
+                    timelineData[b.readYear].books += 1;
+                    timelineData[b.readYear].pages += b.pages;
+                }
+            });
+            const timelineYears = Object.keys(timelineData).sort();
+            const globalMeanRating = totalGlobalCount > 0 ? (totalGlobalRating / totalGlobalCount) : 3.5;
+
+            // Decades
+            const decadeGroups = {};
+            books.forEach(b => {
+                if (b.year && b.rating > 0) {
+                    const decade = Math.floor(b.year / 10) * 10;
+                    const label = decade + 's';
+                    if (!decadeGroups[label]) decadeGroups[label] = { totalRating: 0, count: 0 };
+                    decadeGroups[label].totalRating += b.rating;
+                    decadeGroups[label].count += 1;
+                }
+            });
+            const decadesSorted = Object.keys(decadeGroups).map(lbl => ({
+                label: lbl, avg: decadeGroups[lbl].totalRating / decadeGroups[lbl].count
+            })).sort((a, b) => b.avg - a.avg).slice(0, 10);
+
+            const minDecadeAvg = Math.max(1, Math.floor(Math.min(...decadesSorted.map(d => d.avg)) - 0.5));
+
+            // Stars
+            const stars = { 5:0, 4:0, 3:0, 2:0, 1:0 };
+            books.forEach(b => { if (b.rating > 0) stars[b.rating] += 1; });
+
+            // Shelves
+            const shelfGroups = {};
+            books.forEach(b => {
+                if (b.rating > 0) {
+                    b.shelves.forEach(shelf => {
+                        if (shelf && !['to-read', 'currently-reading', 'read'].includes(shelf)) {
+                            if (!shelfGroups[shelf]) shelfGroups[shelf] = { totalRating: 0, count: 0 };
+                            shelfGroups[shelf].totalRating += b.rating;
+                            shelfGroups[shelf].count += 1;
+                        }
+                    });
+                }
+            });
+            const shelvesSorted = Object.keys(shelfGroups).map(s => ({
+                name: s, avg: shelfGroups[s].totalRating / shelfGroups[s].count, count: shelfGroups[s].count
+            })).sort((a, b) => b.avg - a.avg).slice(0, 5);
+
+            // Authors Core Processing
+            const authorGroups = {};
+            const authorCountsTotal = {};
+            const authorPagesTotal = {};
+            
+            books.forEach(b => {
+                if (b.author) {
+                    authorCountsTotal[b.author] = (authorCountsTotal[b.author] || 0) + 1;
+                    authorPagesTotal[b.author] = (authorPagesTotal[b.author] || 0) + b.pages;
+                    if (b.rating > 0) {
+                        if (!authorGroups[b.author]) authorGroups[b.author] = { totalRating: 0, count: 0 };
+                        authorGroups[b.author].totalRating += b.rating;
+                        authorGroups[b.author].count += 1;
+                    }
+                }
+            });
+
+            const authorsBooksSorted = Object.keys(authorCountsTotal).map(a => ({ name: a, count: authorCountsTotal[a] })).sort((a, b) => b.count - a.count).slice(0, 5);
+            const authorsPagesSorted = Object.keys(authorPagesTotal).map(a => ({ name: a, pages: authorPagesTotal[a] })).sort((a, b) => b.pages - a.pages).slice(0, 5);
+            
+            const authorsSorted = Object.keys(authorGroups).map(a => ({
+                name: a, avg: authorGroups[a].totalRating / authorGroups[a].count, count: authorGroups[a].count
+            })).filter(a => a.count >= 7).sort((a, b) => b.avg - a.avg).slice(0, 5);
+
+            const minBooksParam = 7;
+            const bayesianAuthors = Object.keys(authorGroups).map(a => {
+                const v = authorGroups[a].count;
+                const R = authorGroups[a].totalRating / v;
+                const m = minBooksParam;
+                const C = globalMeanRating;
+                
+                const score = (v / (v + m) * R) + (m / (v + m) * C);
+                
+                return { name: a, score: score, avg: R, count: v };
+            })
+            .filter(a => a.count >= 7)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10);
+
+            // Reset vecchi grafici
+            Object.keys(charts).forEach(key => charts[key].destroy());
+
+            // 1. Pages Timeline Chart
+            charts.pagesTimeline = new Chart(document.getElementById('pagesTimelineChart'), {
+                type: 'line',
+                data: {
+                    labels: timelineYears,
+                    datasets: [{ label: 'Pagine lette totali', data: timelineYears.map(y => timelineData[y].pages), borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.03)', fill: true, tension: 0.3, pointRadius: 4 }]
+                }
+            });
+
+            // 2. Books Timeline Chart
+            charts.booksTimeline = new Chart(document.getElementById('booksTimelineChart'), {
+                type: 'bar',
+                data: {
+                    labels: timelineYears,
+                    datasets: [{ label: 'Libri letti', data: timelineYears.map(y => timelineData[y].books), backgroundColor: '#d97706', borderRadius: 4 }]
+                }
+            });
+
+            // 3. Decade Chart
+            charts.decade = new Chart(document.getElementById('decadeChart'), {
+                type: 'bar',
+                data: {
+                    labels: decadesSorted.map(d => d.label),
+                    datasets: [{ label: 'Media valutazione', data: decadesSorted.map(d => d.avg.toFixed(2)), backgroundColor: '#b45309', borderRadius: 4 }]
+                },
+                options: { indexAxis: 'y', scales: { x: { min: minDecadeAvg, max: 5.0 } } }
+            });
+
+            // 4. Star Chart
+            charts.star = new Chart(document.getElementById('starChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['5 stelle', '4 stelle', '3 stelle', '2 stelle', '1 stella'],
+                    datasets: [{ label: 'Numero di libri', data: [stars[5], stars[4], stars[3], stars[2], stars[1]], backgroundColor: '#f59e0b', borderRadius: 6 }]
+                }
+            });
+
+            // Rendering Tabelle
+            const booksTbody = document.querySelector('#volumeBooksTable tbody');
+            booksTbody.innerHTML = '';
+            authorsBooksSorted.forEach(a => { booksTbody.innerHTML += `<tr><td><span class="badge badge-count">${a.name}</span></td><td><b>${a.count}</b> libri</td></tr>`; });
+
+            const pagesTbody = document.querySelector('#volumePagesTable tbody');
+            pagesTbody.innerHTML = '';
+            authorsPagesSorted.forEach(a => { pagesTbody.innerHTML += `<tr><td><span class="badge badge-pages">${a.name}</span></td><td><b>${a.pages.toLocaleString()}</b> pagine</td></tr>`; });
+
+            document.querySelector('#authorsTable tbody').innerHTML = '';
+            authorsSorted.forEach(a => { document.querySelector('#authorsTable tbody').innerHTML += `<tr><td><span class="badge">${a.name}</span></td><td><b>${a.avg.toFixed(2)}</b> / 5.0</td><td>${a.count} libri</td></tr>`; });
+
+            document.querySelector('#shelvesTable tbody').innerHTML = '';
+            shelvesSorted.forEach(s => { document.querySelector('#shelvesTable tbody').innerHTML += `<tr><td><span class="badge badge-shelf">${s.name}</span></td><td><b>${s.avg.toFixed(2)}</b> / 5.0</td><td>${s.count} libri</td></tr>`; });
+
+            // Bayesian Table Render
+            const bayesTbody = document.querySelector('#bayesAuthorsTable tbody');
+            bayesTbody.innerHTML = '';
+            bayesianAuthors.forEach((a, i) => {
+                bayesTbody.innerHTML += `
+                    <tr>
+                        <td><b>#${i+1}</b></td>
+                        <td><span class="badge badge-bayes">${a.name}</span></td>
+                        <td><b style="color:#b45309;">${a.score.toFixed(3)}</b></td>
+                        <td>${a.avg.toFixed(2)}</td>
+                        <td><b>${a.count}</b> libri letti</td>
+                    </tr>`;
+            });
+
+            // RANDOMIZED 5-Star Spotlight Rendering
+            const favoritesTbody = document.querySelector('#favoritesTable tbody');
+            favoritesTbody.innerHTML = '';
+            
+            const perfectBooks = books.filter(b => b.rating === 5);
+            for (let i = perfectBooks.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [perfectBooks[i], perfectBooks[j]] = [perfectBooks[j], perfectBooks[i]];
+            }
+            
+            perfectBooks.slice(0, 10).forEach(b => {
+                favoritesTbody.innerHTML += `<tr><td>${b.title}</td><td><span class="badge" style="background-color:#f5f5f4; color:#44403c;">${b.author}</span></td><td>${b.year || 'Non specificato'}</td></tr>`;
+            });
+        }
+    </script>
+</body>
+</html>
