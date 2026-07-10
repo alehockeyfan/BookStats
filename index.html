@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>Dashboard statistiche libri</title>
+    
+    <!-- TRUCCO EMOJI COME ICONA (FAVICON) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+    
+    <!-- Include Chart.js per i grafici dinamici e responsive -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -83,9 +88,34 @@
         .placeholder-text {
             color: #a8a29e;
             text-align: center;
-            padding: 50px 0;
+            padding: 40px 0;
             font-style: italic;
             font-size: 16px;
+        }
+        .instruction-box {
+            background-color: #fef3c7;
+            border: 1px solid #fde047;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            color: #78350f;
+        }
+        .instruction-box h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .instruction-box ol {
+            margin: 0;
+            padding-left: 20px;
+            line-height: 1.6;
+        }
+        .instruction-box code {
+            background-color: rgba(255, 255, 255, 0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-weight: bold;
         }
         table {
             width: 100%;
@@ -123,7 +153,7 @@
     <div class="header">
         <div>
             <h1>📚 Le mie statistiche di lettura</h1>
-            <p>Trascina il tuo file per aggiornare istantaneamente i grafici cronologici, le valutazioni degli autori e i riepiloghi.</p>
+            <p>Carica il tuo file per generare istantaneamente la tua dashboard letteraria personalizzata.</p>
         </div>
         <div class="upload-btn-wrapper">
             <button class="btn">🔄 Carica CSV di Goodreads</button>
@@ -131,7 +161,22 @@
         </div>
     </div>
 
+    <!-- ISTRUZIONI INIZIALI (SCOMPAIONO DOPO IL CARICAMENTO) -->
+    <div id="instructions" class="instruction-box">
+        <h3>💡 Come ottenere il tuo file di lettura:</h3>
+        <p>Per utilizzare questa dashboard, devi prima esportare la tua libreria personale direttamente da Goodreads. Ecco i passaggi:</p>
+        <ol>
+            <li>Accedi al tuo account su <code>goodreads.com</code> dal computer.</li>
+            <li>Nel menu in alto, clicca su <code>My Books</code>.</li>
+            <li>Nella barra laterale a sinistra, sotto la sezione delle opzioni, clicca su <code>Import/Export</code>.</li>
+            <li>In alto a destra nella pagina, clicca sul pulsante <code>Export Library</code> e attendi qualche istante la generazione del file.</li>
+            <li>Clicca sul link che appare (es. <code>Your export from...</code>) per scaricare il file CSV sul tuo computer.</li>
+            <li>Trascina o carica il file appena scaricato utilizzando il pulsante giallo qui sopra!</li>
+        </ol>
+    </div>
+
     <div id="dashboardContent" class="grid" style="display:none;">
+        <!-- TIMELINES AFFIANCATE -->
         <div class="card">
             <h2>📈 Pagine lette per anno</h2>
             <canvas id="pagesTimelineChart"></canvas>
@@ -142,16 +187,19 @@
             <canvas id="booksTimelineChart"></canvas>
         </div>
 
+        <!-- CLASSIFICA DECENNI -->
         <div class="card">
             <h2>🏆 Classifica dei decenni (in base alla media voti)</h2>
             <canvas id="decadeChart"></canvas>
         </div>
 
+        <!-- DISTRIBUZIONE STELLE -->
         <div class="card">
             <h2>📊 Distribuzione delle valutazioni (stelle)</h2>
             <canvas id="starChart"></canvas>
         </div>
 
+        <!-- TABELLA VOLUME 1: PIÙ LIBRI -->
         <div class="card">
             <h2>📚 Autori più letti (per numero di libri)</h2>
             <table id="volumeBooksTable">
@@ -160,6 +208,7 @@
             </table>
         </div>
 
+        <!-- TABELLA VOLUME 2: PIÙ PAGINE -->
         <div class="card">
             <h2>📖 Autori più letti (per totale pagine lette)</h2>
             <table id="volumePagesTable">
@@ -168,6 +217,7 @@
             </table>
         </div>
 
+        <!-- AUTORI CON LA MEDIA PIÙ ALTA -->
         <div class="card">
             <h2>✍️ I tuoi autori più votati (min. 7 libri letti)</h2>
             <table id="authorsTable">
@@ -176,6 +226,7 @@
             </table>
         </div>
 
+        <!-- LIBRERIE PERSONALIZZATE -->
         <div class="card">
             <h2>🏷️ Migliori librerie personalizzate (media voti)</h2>
             <table id="shelvesTable">
@@ -184,6 +235,7 @@
             </table>
         </div>
 
+        <!-- AUTORI HALL OF FAME (BAYES) -->
         <div class="card full-width">
             <h2>🏆 L'autore hall of fame (indice di consistenza bayesiana - min. 7 libri letti)</h2>
             <p style="color: #78716c; font-size: 14px; margin-top: -10px; margin-bottom: 20px;">
@@ -203,6 +255,7 @@
             </table>
         </div>
 
+        <!-- SPOTLIGHT 5 STELLE CASUALE -->
         <div class="card full-width">
             <h2>⭐ Selezione casuale dei tuoi libri perfetti a 5 stelle</h2>
             <table id="favoritesTable">
@@ -231,7 +284,6 @@
             let row = [""];
             let inQuotes = false;
 
-            // Rilevamento automatico del separatore (virgola o punto e virgola)
             const firstLine = text.split('\n')[0];
             const separator = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
 
@@ -298,6 +350,7 @@
 
         function renderDashboard(books) {
             document.getElementById('placeholder').style.display = 'none';
+            document.getElementById('instructions').style.display = 'none'; // Nasconde le istruzioni dopo il caricamento
             document.getElementById('dashboardContent').style.display = 'grid';
 
             let totalGlobalRating = 0;
