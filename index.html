@@ -226,22 +226,20 @@
             </table>
         </div>
 
-        <!-- LIBRERIE PERSONALIZZATE -->
+        <!-- SCAFFALI PERSONALIZZATI -->
         <div class="card">
-            <h2>🏷️ Migliori librerie personalizzate (media voti)</h2>
+            <h2>🏷️ Migliori scaffali personalizzati (media voti)</h2>
             <table id="shelvesTable">
-                <thead><tr><th>Categoria libreria (shelf)</th><th>Media voti</th><th>Libri letti</th></tr></thead>
+                <thead><tr><th>Categoria scaffale (shelf)</th><th>Media voti</th><th>Libri letti</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
 
-        <!-- AUTORI HALL OF FAME (BAYES) -->
+        <!-- HALL OF FAME AUTORI (BAYES) -->
         <div class="card full-width">
             <h2>🏆 Hall of fame degli autori (indice di consistenza bayesiana - min. 7 libri letti)</h2>
             <p style="color: #78716c; font-size: 14px; margin-top: -10px; margin-bottom: 20px;">
                 Calcolato utilizzando l'algoritmo di classificazione della top 250 di IMDb. Applica una media ponderata che combina la tua valutazione media per ciascun autore con il numero di sue opere lette, attribuendo maggiore peso agli autori che presentano più titoli valutati positivamente rispetto a quelli con poche letture ma medie elevate.
-youmath
-+1.
             </p>
             <table id="bayesAuthorsTable">
                 <thead>
@@ -477,7 +475,7 @@ youmath
                 type: 'bar',
                 data: {
                     labels: decadesSorted.map(d => d.label),
-                    datasets: [{ label: 'Media valutazione', data: decadesSorted.map(d => d.avg.toFixed(2)), backgroundColor: '#b45309', borderRadius: 4 }]
+                    datasets: [{ label: 'Valutazione media', data: decadesSorted.map(d => d.avg.toFixed(2)), backgroundColor: '#b45309', borderRadius: 4 }]
                 },
                 options: { indexAxis: 'y', scales: { x: { min: minDecadeAvg, max: 5.0 } } }
             });
