@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <title>BookStats</title>
     
+    <!-- TRUCCO EMOJI COME ICONA (FAVICON) -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
     
+    <!-- Include Chart.js per i grafici dinamici e responsive -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -66,7 +68,7 @@
             font-size: 100px;
             position: absolute;
             left: 0;
-top: 0;
+            top: 0;
             opacity: 0;
             cursor: pointer;
         }
@@ -211,6 +213,7 @@ top: 0;
         </div>
     </div>
 
+    <!-- SEZIONE ISTRUZIONI DI CARICAMENTO BILINGUE -->
     <div id="instructions" class="instructions-container">
         <div class="instruction-column">
             <h3>🇬🇧 Quick Guide</h3>
@@ -584,3 +587,156 @@ top: 0;
             })).sort((a, b) => b.avg - a.avg).slice(0, 10);
 
             const minDecadeAvg = Math.max(1, Math.floor(Math.min(...decadesSorted.map(d => d.avg)) - 0.5));
+
+            const stars = { 5:0, 4:0, 3:0, 2:0, 1:0 };
+            books.forEach(b => { if (b.rating > 0) stars[b.rating] += 1; });
+
+            const shelfGroups = {};
+            books.forEach(b => {
+                if (b.rating > 0) {
+                    b.shelves.forEach(shelf => {
+                        if (shelf && !['to-read', 'currently-reading', 'read'].includes(shelf)) {
+                            if (!shelfGroups[shelf]) shelfGroups[shelf] = { totalRating: 0, count: 0 };
+                            shelfGroups[shelf].totalRating += b.rating;
+                            shelfGroups[shelf].count += 1;
+                        }
+                    });
+                }
+            });
+            const shelvesSorted = Object.keys(shelfGroups).map(s => ({
+                name: s, avg: shelfGroups[s].totalRating / shelfGroups[s].count, count: shelfGroups[s].count
+            })).sort((a, b) => b.avg - a.avg).slice(0, 5);
+
+            const authorGroups = {};
+            const authorCountsTotal = {};
+            const authorPagesTotal = {};
+            
+            books.forEach(b => {
+                if (b.author) {
+                    authorCountsTotal[b.author] = (authorCountsTotal[b.author] || 0) + 1;
+                    authorPagesTotal[b.author] = (authorPagesTotal[b.author] || 0) + b.pages;
+                    if (b.rating > 0) {
+                        if (!authorGroups[b.author]) authorGroups[b.author] = { totalRating: 0, count: 0 };
+                        authorGroups[b.author].totalRating += b.rating;
+                        authorGroups[b.author].count += 1;
+                    }
+                }
+            });
+
+            const authorsBooksSorted = Object.keys(authorCountsTotal).map(a => ({ name: a, count: authorCountsTotal[a] })).sort((a, b) => b.count - a.count).slice(0, 5);
+            const authorsPagesSorted = Object.keys(authorPagesTotal).map(a => ({ name: a, pages: authorPagesTotal[a] })).sort((a, b) => b.pages - a.pages).slice(0, 5);
+            
+            const authorsSorted = Object.keys(authorGroups).map(a => ({
+                name: a, avg: authorGroups[a].totalRating / authorGroups[a].count, count: authorGroups[a].count
+            })).filter(a => a.count >= 7).sort((a, b) => b.avg - a.avg).slice(0, 5);
+
+            const minBooksParam = 7;
+            const bayesianAuthors = Object.keys(authorGroups).map(a => {
+                const v = authorGroups[a].count;
+                const R = authorGroups[a].totalRating / v;
+                const m = minBooksParam;
+                const C = globalMeanRating;
+                
+                const score = (v / (v + m) * R) + (m / (v + m) * C);
+                
+                return { name: a, score: score, avg: R, count: v };
+            })
+            .filter(a => a.count >= 7)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10);
+
+            Object.keys(charts).forEach(key => charts[key].destroy());
+
+            // 1. Pages Timeline Chart
+            charts.pagesTimeline = new Chart(document.getElementById('pagesTimelineChart'), {
+                type: 'line',
+                data: {
+                    labels: timelineYears,
+                    datasets: [{ label: t.dsPages, data: timelineYears.map(y => timelineData[y].pages), borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.03)', fill: true, tension: 0.3, pointRadius: 4 }]
+                }
+            });
+
+            // 2. Books Timeline Chart
+            charts.booksTimeline = new Chart(document.getElementById('booksTimelineChart'), {
+                type: 'bar',
+                data: {
+                    labels: timelineYears,
+                    datasets: [{ label: t.dsBooks, data: timelineYears.map(y => timelineData[y].books), backgroundColor: '#d97706', borderRadius: 4 }]
+                }
+            });
+
+            // 3. Decade Chart
+            charts.decade = new Chart(document.getElementById('decadeChart'), {
+                type: 'bar',
+                data: {
+                    labels: decadesSorted.map(d => d.label),
+                    datasets: [{ label: t.dsAvgRating, data: decadesSorted.map(d => d.avg.toFixed(2)), backgroundColor: '#b45309', borderRadius: 4 }]
+                },
+                options: { indexAxis: 'y', scales: { x: { min: minDecadeAvg, max: 5.0 } } }
+            });
+
+            // 4. Star Chart
+            charts.star = new Chart(document.getElementById('starChart'), {
+                type: 'bar',
+                data: {
+                    labels: [`5 ${t.starsLabel}`, `4 ${t.starsLabel}`, `3 ${t.starsLabel}`, `2 ${t.starsLabel}`, `1 ${currentLang === 'it' ? t.starLabelSingle : t.starsLabel}`],
+                    datasets: [{ label: t.dsBooksCount, data: [stars[5], stars[4], stars[3], stars[2], stars[1]], backgroundColor: '#f59e0b', borderRadius: 6 }]
+                }
+            });
+
+            // Rendering Tabelle Localizzate
+            const booksTbody = document.querySelector('#volumeBooksTable tbody');
+            booksTbody.innerHTML = '';
+            authorsBooksSorted.forEach(a => { 
+                booksTbody.innerHTML += `<tr><td><span class="badge badge-count">${a.name}</span></td><td><b>${a.count.toLocaleString(localeStr)}</b> ${t.booksSuffix}</td></tr>`; 
+            });
+
+            const pagesTbody = document.querySelector('#volumePagesTable tbody');
+            pagesTbody.innerHTML = '';
+            authorsPagesSorted.forEach(a => { 
+                pagesTbody.innerHTML += `<tr><td><span class="badge badge-pages">${a.name}</span></td><td><b>${a.pages.toLocaleString(localeStr)}</b> ${t.pagesSuffix}</td></tr>`; 
+            });
+
+            const authorsTbody = document.querySelector('#authorsTable tbody');
+            authorsTbody.innerHTML = '';
+            authorsSorted.forEach(a => { 
+                authorsTbody.innerHTML += `<tr><td><span class="badge">${a.name}</span></td><td><b>${a.avg.toLocaleString(localeStr, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b> / 5.0</td><td>${a.count.toLocaleString(localeStr)} ${t.booksSuffix}</td></tr>`; 
+            });
+
+            const shelvesTbody = document.querySelector('#shelvesTable tbody');
+            shelvesTbody.innerHTML = '';
+            shelvesSorted.forEach(s => { 
+                shelvesTbody.innerHTML += `<tr><td><span class="badge badge-shelf">${s.name}</span></td><td><b>${s.avg.toLocaleString(localeStr, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b> / 5.0</td><td>${s.count.toLocaleString(localeStr)} ${t.booksSuffix}</td></tr>`; 
+            });
+
+            const bayesTbody = document.querySelector('#bayesAuthorsTable tbody');
+            bayesTbody.innerHTML = '';
+            bayesianAuthors.forEach((a, i) => {
+                bayesTbody.innerHTML += `
+                    <tr>
+                        <td><b>#${i+1}</b></td>
+                        <td><span class="badge badge-bayes">${a.name}</span></td>
+                        <td><b style="color:#b45309;">${a.score.toLocaleString(localeStr, {minimumFractionDigits: 3, maximumFractionDigits: 3})}</b></td>
+                        <td>${a.avg.toLocaleString(localeStr, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td><b>${a.count.toLocaleString(localeStr)}</b> ${t.booksSuffix}</td>
+                    </tr>`;
+            });
+
+            const favoritesTbody = document.querySelector('#favoritesTable tbody');
+            favoritesTbody.innerHTML = '';
+            
+            const perfectBooks = books.filter(b => b.rating === 5);
+            for (let i = perfectBooks.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [perfectBooks[i], perfectBooks[j]] = [perfectBooks[j], perfectBooks[i]];
+            }
+            
+            perfectBooks.slice(0, 10).forEach(b => {
+                favoritesTbody.innerHTML += `<tr><td>${b.title}</td><td><span class="badge" style="background-color:#f5f5f4; color:#44403c;">${b.author}</span></td><td>${b.year || t.notSpecified}</td></tr>`;
+            });
+        }
+
+        setLanguage('en');
+    </script>
+</body>
+</html>
