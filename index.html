@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <title>BookStats</title>
     
-    <!-- TRUCCO EMOJI COME ICONA (FAVICON) -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
     
-    <!-- Include Chart.js per i grafici dinamici e responsive -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -156,6 +154,12 @@
             font-style: italic;
             font-size: 16px;
         }
+        #error-msg {
+            color: #b91c1c;
+            font-weight: 600;
+            text-align: center;
+            margin: 20px 0;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -213,7 +217,6 @@
         </div>
     </div>
 
-    <!-- SEZIONE ISTRUZIONI DI CARICAMENTO BILINGUE -->
     <div id="instructions" class="instructions-container">
         <div class="instruction-column">
             <h3>🇬🇧 Quick Guide</h3>
@@ -236,6 +239,8 @@
             </ol>
         </div>
     </div>
+
+    <div id="error-msg" style="display:none;"></div>
 
     <div id="dashboardContent" class="grid" style="display:none;">
         <div class="card">
@@ -367,7 +372,8 @@
                 notSpecified: "Not specified",
                 starsLabel: "stars",
                 starLabelSingle: "star",
-                errNoFile: "Error: No file loaded."
+                errNoFile: "Error: No file loaded.",
+                errHeaders: "Error: Columns 'Title', 'Author' or 'My Rating' not found in the CSV file."
             },
             it: {
                 mainTitle: "📚 Le mie statistiche di lettura",
@@ -412,7 +418,8 @@
                 notSpecified: "Non specificato",
                 starsLabel: "stelle",
                 starLabelSingle: "stella",
-                errNoFile: "Errore: Nessun file caricato."
+                errNoFile: "Errore: Nessun file caricato.",
+                errHeaders: "Errore: Colonne 'Title', 'Author' o 'My Rating' non trovate nel file CSV."
             }
         };
 
@@ -472,8 +479,11 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(evt) { parseCSV(evt.target.result); };
-            reader.readAsText(file);
+            reader.onload = function(evt) { 
+                document.getElementById('error-msg').style.display = 'none';
+                parseCSV(evt.target.result); 
+            };
+            reader.readAsText(file, "UTF-8");
         });
 
         function parseCSV(text) {
@@ -481,7 +491,9 @@
             let row = [""];
             let inQuotes = false;
 
-            const firstLine = text.split('\n')[0];
+            const splitLines = text.split('\n');
+            if (splitLines.length === 0) return;
+            const firstLine = splitLines[0];
             const separator = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
 
             for (let i = 0; i < text.length; i++) {
@@ -503,7 +515,7 @@
             if (row.length > 1 || row[0] !== '') lines.push(row);
             if (lines.length < 2) return;
 
-            const headers = lines[0].map(h => h.trim());
+            const headers = lines[0].map(h => h.replace(/^"|"$/g, '').trim());
             
             const titleIdx = headers.indexOf('Title');
             const authorIdx = headers.indexOf('Author');
@@ -513,6 +525,13 @@
             const pubYearIdx = headers.indexOf('Original Publication Year');
             const fallbackYearIdx = headers.indexOf('Year Published');
             const dateReadIdx = headers.indexOf('Date Read');
+
+            if (titleIdx === -1 || authorIdx === -1 || ratingIdx === -1) {
+                const errMsg = document.getElementById('error-msg');
+                errMsg.innerText = langs[currentLang].errHeaders;
+                errMsg.style.display = 'block';
+                return;
+            }
 
             const books = [];
             for(let i=1; i<lines.length; i++) {
