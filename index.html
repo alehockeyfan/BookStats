@@ -1,13 +1,11 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard statistiche libri</title>
+    <title>BookStats</title>
     
-    <!-- TRUCCO EMOJI COME ICONA (FAVICON) -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
     
-    <!-- Include Chart.js per i grafici dinamici e responsive -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -18,7 +16,7 @@
             padding: 35px;
         }
         .header {
-            margin-bottom: 35px;
+            margin-bottom: 25px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -34,6 +32,11 @@
             margin: 5px 0 0 0;
             color: #78716c;
             font-size: 16px;
+        }
+        .actions-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
         .upload-btn-wrapper {
             position: relative;
@@ -51,6 +54,9 @@
             cursor: pointer;
             box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2);
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         .btn:hover {
             background-color: #b45309;
@@ -60,10 +66,66 @@
             font-size: 100px;
             position: absolute;
             left: 0;
-            top: 0;
+top: 0;
             opacity: 0;
             cursor: pointer;
         }
+        .lang-selector {
+            padding: 10px 14px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            outline: none;
+        }
+        .lang-selector:focus {
+            border-color: #d97706;
+        }
+        
+        /* Sezione Istruzioni Bilingue */
+        .instructions-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 30px;
+            padding: 24px;
+            background-color: #fef3c7;
+            border: 1px solid #fde047;
+            border-radius: 16px;
+            color: #78350f;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+        }
+        .instruction-column {
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .instruction-column h3 {
+            text-align: left;
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #451a03;
+        }
+        .instruction-column ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .instruction-column li {
+            margin-bottom: 8px;
+        }
+        .instruction-column code {
+            background-color: rgba(255, 255, 255, 0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -91,31 +153,6 @@
             padding: 40px 0;
             font-style: italic;
             font-size: 16px;
-        }
-        .instruction-box {
-            background-color: #fef3c7;
-            border: 1px solid #fde047;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-            color: #78350f;
-        }
-        .instruction-box h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 18px;
-        }
-        .instruction-box ol {
-            margin: 0;
-            padding-left: 20px;
-            line-height: 1.6;
-        }
-        .instruction-box code {
-            background-color: rgba(255, 255, 255, 0.6);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: inherit;
-            font-weight: bold;
         }
         table {
             width: 100%;
@@ -146,130 +183,287 @@
         .badge-pages { background-color: #fff7ed; color: #c2410c; }
         .badge-bayes { background-color: #fef3c7; color: #78350f; border: 1px solid #fde047; }
         .full-width { grid-column: span 2; }
+
+        @media(max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+            .full-width { grid-column: span 1; }
+            .instructions-container { grid-template-columns: 1fr; gap: 16px; }
+            .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div>
-            <h1>📚 Le mie statistiche di lettura</h1>
-            <p>Carica il tuo file per generare istantaneamente la tua dashboard letteraria personalizzata.</p>
+            <h1 id="mainTitle">📚 My Reading Stats</h1>
+            <p id="subtitle">Upload your Goodreads export file to instantly generate your personalized literary dashboard.</p>
         </div>
-        <div class="upload-btn-wrapper">
-            <button class="btn">🔄 Carica CSV di Goodreads</button>
-            <input type="file" id="csvFile" accept=".csv" />
+        <div class="actions-container">
+            <select id="langSelect" class="lang-selector">
+                <option value="en">🇬🇧 English</option>
+                <option value="it">🇮🇹 Italiano</option>
+            </select>
+            <div class="upload-btn-wrapper">
+                <button class="btn" id="btnUpload">🔄 Load Goodreads CSV</button>
+                <input type="file" id="csvFile" accept=".csv" />
+            </div>
         </div>
     </div>
 
-    <!-- ISTRUZIONI INIZIALI (SCOMPAIONO DOPO IL CARICAMENTO) -->
-    <div id="instructions" class="instruction-box">
-        <h3>💡 Come ottenere il tuo file di lettura:</h3>
-        <p>Per utilizzare questa dashboard, devi prima esportare la tua libreria personale direttamente da Goodreads. Ecco i passaggi:</p>
-        <ol>
-            <li>Accedi al tuo account su <code>goodreads.com</code> dal computer.</li>
-            <li>Nel menu in alto, clicca su <code>My Books</code>.</li>
-            <li>Nella barra laterale a sinistra, sotto la sezione delle opzioni, clicca su <code>Import/Export</code>.</li>
-            <li>In alto a destra nella pagina, clicca sul pulsante <code>Export Library</code> e attendi qualche istante la generazione del file.</li>
-            <li>Clicca sul link che appare (es. <code>Your export from...</code>) per scaricare il file CSV sul tuo computer.</li>
-            <li>Trascina o carica il file appena scaricato utilizzando il pulsante giallo qui sopra!</li>
-        </ol>
+    <div id="instructions" class="instructions-container">
+        <div class="instruction-column">
+            <h3>🇬🇧 Quick Guide</h3>
+            <ol>
+                <li><b>Language Selector</b>: Use the dropdown in the top-right corner to switch between English and Italian at any time.</li>
+                <li><b>Export from Goodreads</b>: Log into <code>goodreads.com</code>, click on <code>My Books</code>, then click on <code>Import/Export</code> in the sidebar.</li>
+                <li><b>Download</b>: Click <code>Export Library</code> and download the CSV file from the link that appears.</li>
+                <li><b>Load File</b>: Drag or load the downloaded file using the orange button in the header above!</li>
+                <li><b>Privacy</b>: Your data is processed entirely inside your web browser. No files are uploaded to any external server.</li>
+            </ol>
+        </div>
+        <div class="instruction-column" style="border-left: 1px solid #fde047; padding-left: 20px;">
+            <h3>🇮🇹 Guida Rapida</h3>
+            <ol>
+                <li><b>Scelta Lingua</b>: Usa il menu a tendina in alto a destra per cambiare la lingua tra Italiano e Inglese in qualsiasi momento.</li>
+                <li><b>Esportare da Goodreads</b>: Accedi a <code>goodreads.com</code> dal computer, clicca su <code>My Books</code>, quindi seleziona <code>Import/Export</code> nella barra laterale.</li>
+                <li><b>Download</b>: Clicca sul pulsante <code>Export Library</code> e scarica il file CSV generato tramite il link che appare.</li>
+                <li><b>Carica File</b>: Trascina o carica il file CSV appena scaricato usando il pulsante arancione qui sopra!</li>
+                <li><b>Privacy</b>: I tuoi dati sono elaborati interamente all'interno del browser. Nessun dato viene inviato a server esterni.</li>
+            </ol>
+        </div>
     </div>
 
     <div id="dashboardContent" class="grid" style="display:none;">
-        <!-- TIMELINES AFFIANCATE -->
         <div class="card">
-            <h2>📈 Pagine lette per anno</h2>
+            <h2 id="lblPagesTimeline">📈 Pages Read Per Year</h2>
             <canvas id="pagesTimelineChart"></canvas>
         </div>
 
         <div class="card">
-            <h2>📊 Libri letti per anno</h2>
+            <h2 id="lblBooksTimeline">📊 Books Read Per Year</h2>
             <canvas id="booksTimelineChart"></canvas>
         </div>
 
-        <!-- CLASSIFICA DECENNI -->
         <div class="card">
-            <h2>🏆 Classifica dei decenni (in base alla media voti)</h2>
+            <h2 id="lblDecadeChart">🏆 Decade Leaderboard (by average rating)</h2>
             <canvas id="decadeChart"></canvas>
         </div>
 
-        <!-- DISTRIBUZIONE STELLE -->
         <div class="card">
-            <h2>📊 Distribuzione delle valutazioni (stelle)</h2>
+            <h2 id="lblStarChart">📊 Rating Distribution (stars)</h2>
             <canvas id="starChart"></canvas>
         </div>
 
-        <!-- TABELLA VOLUME 1: PIÙ LIBRI -->
         <div class="card">
-            <h2>📚 Autori più letti (per numero di libri)</h2>
+            <h2 id="lblTopAuthorsBooks">📚 Most Read Authors (by number of books)</h2>
             <table id="volumeBooksTable">
-                <thead><tr><th>Nome autore</th><th>Libri registrati</th></tr></thead>
+                <thead><tr><th id="thAuthorBooks">Author Name</th><th id="thBooksReg">Registered Books</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
 
-        <!-- TABELLA VOLUME 2: PIÙ PAGINE -->
         <div class="card">
-            <h2>📖 Autori più letti (per totale pagine lette)</h2>
+            <h2 id="lblTopAuthorsPages">📖 Most Read Authors (by total pages read)</h2>
             <table id="volumePagesTable">
-                <thead><tr><th>Nome autore</th><th>Totale pagine lette</th></tr></thead>
+                <thead><tr><th id="thAuthorPages">Author Name</th><th id="thTotalPages">Total Pages Read</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
 
-        <!-- AUTORI CON LA MEDIA PIÙ ALTA -->
         <div class="card">
-            <h2>✍️ I tuoi autori più votati (min. 7 libri letti)</h2>
+            <h2 id="lblHighestRatedAuthors">✍️ Your Highest Rated Authors (min. 7 books)</h2>
             <table id="authorsTable">
-                <thead><tr><th>Nome autore</th><th>Media voti</th><th>Libri letti</th></tr></thead>
+                <thead><tr><th id="thAuthorRated">Author Name</th><th id="thAvgRating">Avg Rating</th><th id="thBooksRead">Books Read</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
 
-        <!-- SCAFFALI PERSONALIZZATI -->
         <div class="card">
-            <h2>🏷️ Migliori scaffali personalizzati (media voti)</h2>
+            <h2 id="lblShelvesTable">🏷️ Best Custom Bookshelves (average rating)</h2>
             <table id="shelvesTable">
-                <thead><tr><th>Categoria scaffale (shelf)</th><th>Media voti</th><th>Libri letti</th></tr></thead>
+                <thead><tr><th id="thShelfCat">Shelf Category</th><th id="thAvgRatingShelf">Avg Rating</th><th id="thBooksReadShelf">Books Read</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
 
-        <!-- HALL OF FAME AUTORI (BAYES) -->
         <div class="card full-width">
-            <h2>🏆 Hall of fame degli autori (indice di consistenza bayesiana - min. 7 libri letti)</h2>
-            <p style="color: #78716c; font-size: 14px; margin-top: -10px; margin-bottom: 20px;">
-                Calcolato utilizzando l'algoritmo di classificazione della top 250 di IMDb. Applica una media ponderata che combina la tua valutazione media per ciascun autore con il numero di sue opere lette, attribuendo maggiore peso agli autori che presentano più titoli valutati positivamente rispetto a quelli con poche letture ma medie elevate.
+            <h2 id="lblHallOfFame">🏆 Authors Hall of Fame (Bayesian Consistency Index - min. 7 books)</h2>
+            <p id="lblHallOfFameDesc" style="color: #78716c; font-size: 14px; margin-top: -10px; margin-bottom: 20px;">
+                Calculated using the IMDb Top 250 ranking algorithm. It applies a weighted average that combines your average rating for each author with the number of their works you've read, giving more weight to authors with a larger volume of highly-rated books.
             </p>
             <table id="bayesAuthorsTable">
                 <thead>
                     <tr>
-                        <th>Pos.</th>
-                        <th>Nome autore</th>
-                        <th>Punteggio indice pesato</th>
-                        <th>Media voti reale</th>
-                        <th>Libri letti</th>
+                        <th id="thPos">Pos.</th>
+                        <th id="thBayesAuthor">Author Name</th>
+                        <th id="thWeightedScore">Weighted Index Score</th>
+                        <th id="thRealAvg">Real Avg Rating</th>
+                        <th id="thBayesBooks">Books Read</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
             </table>
         </div>
 
-        <!-- SPOTLIGHT 5 STELLE CASUALE -->
         <div class="card full-width">
-            <h2>⭐ Selezione casuale dei tuoi libri a 5 stelle</h2>
+            <h2 id="lblSpotlight">⭐ Random Selection of Your 5-Star Books</h2>
             <table id="favoritesTable">
-                <thead><tr><th>Titolo</th><th>Autore</th><th>Anno di pubblicazione</th></tr></thead>
+                <thead><tr><th id="thTitle">Title</th><th id="thAuthorFav">Author</th><th id="thPubYear">Publication Year</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
     </div>
 
     <div id="placeholder" class="card">
-        <p class="placeholder-text">Fai clic sul pulsante in alto e seleziona il tuo file di esportazione della libreria per visualizzare istantaneamente le metriche.</p>
+        <p id="placeholderText" class="placeholder-text">Click on the button above and select your library export file to instantly view your stats.</p>
     </div>
 
     <script>
+        const langs = {
+            en: {
+                mainTitle: "📚 My Reading Stats",
+                subtitle: "Upload your Goodreads export file to instantly generate your personalized literary dashboard.",
+                btnUpload: "🔄 Load Goodreads CSV",
+                placeholderText: "Click on the button above and select your library export file to instantly view your stats.",
+                lblPagesTimeline: "📈 Pages Read Per Year",
+                lblBooksTimeline: "📊 Books Read Per Year",
+                lblDecadeChart: "🏆 Decade Leaderboard (by average rating)",
+                lblStarChart: "📊 Rating Distribution (stars)",
+                lblTopAuthorsBooks: "📚 Most Read Authors (by number of books)",
+                thAuthorBooks: "Author Name",
+                thBooksReg: "Registered Books",
+                lblTopAuthorsPages: "📖 Most Read Authors (by total pages read)",
+                thAuthorPages: "Author Name",
+                thTotalPages: "Total Pages Read",
+                lblHighestRatedAuthors: "✍️ Your Highest Rated Authors (min. 7 books)",
+                thAuthorRated: "Author Name",
+                thAvgRating: "Avg Rating",
+                thBooksRead: "Books Read",
+                lblShelvesTable: "🏷️ Best Custom Bookshelves (average rating)",
+                thShelfCat: "Shelf Category",
+                thAvgRatingShelf: "Avg Rating",
+                thBooksReadShelf: "Books Read",
+                lblHallOfFame: "🏆 Authors Hall of Fame (Bayesian Consistency Index - min. 7 books)",
+                lblHallOfFameDesc: "Calculated using the IMDb Top 250 ranking algorithm. It applies a weighted average that combines your average rating for each author with the number of their works you've read, giving more weight to authors with a larger volume of highly-rated books.",
+                thPos: "Pos.",
+                thBayesAuthor: "Author Name",
+                thWeightedScore: "Weighted Index Score",
+                thRealAvg: "Real Avg Rating",
+                thBayesBooks: "Books Read",
+                lblSpotlight: "⭐ Random Selection of Your 5-Star Books",
+                thTitle: "Title",
+                thAuthorFav: "Author",
+                thPubYear: "Publication Year",
+                dsPages: "Total pages read",
+                dsBooks: "Books read",
+                dsAvgRating: "Average rating",
+                dsBooksCount: "Number of books",
+                booksSuffix: "books",
+                pagesSuffix: "pages",
+                notSpecified: "Not specified",
+                starsLabel: "stars",
+                starLabelSingle: "star",
+                errNoFile: "Error: No file loaded."
+            },
+            it: {
+                mainTitle: "📚 Le mie statistiche di lettura",
+                subtitle: "Carica il tuo file per generare istantaneamente la tua dashboard letteraria personalizzata.",
+                btnUpload: "🔄 Carica CSV di Goodreads",
+                placeholderText: "Fai clic sul pulsante in alto e seleziona il tuo file di esportazione della libreria per visualizzare istantaneamente le metriche.",
+                lblPagesTimeline: "📈 Pagine lette per anno",
+                lblBooksTimeline: "📊 Libri letti per anno",
+                lblDecadeChart: "🏆 Classifica dei decenni (in base alla media voti)",
+                lblStarChart: "📊 Distribuzione delle valutazioni (stelle)",
+                lblTopAuthorsBooks: "📚 Autori più letti (per numero di libri)",
+                thAuthorBooks: "Nome autore",
+                thBooksReg: "Libri registrati",
+                lblTopAuthorsPages: "📖 Autori più letti (per totale pagine lette)",
+                thAuthorPages: "Nome autore",
+                thTotalPages: "Totale pagine lette",
+                lblHighestRatedAuthors: "✍️ I tuoi autori più votati (min. 7 libri letti)",
+                thAuthorRated: "Nome autore",
+                thAvgRating: "Media voti",
+                thBooksRead: "Libri letti",
+                lblShelvesTable: "🏷️ Migliori scaffali personalizzati (media voti)",
+                thShelfCat: "Categoria scaffale (shelf)",
+                thAvgRatingShelf: "Media voti",
+                thBooksReadShelf: "Libri letti",
+                lblHallOfFame: "🏆 Hall of fame degli autori (indice di consistenza bayesiana - min. 7 libri letti)",
+                lblHallOfFameDesc: "Calcolato utilizzando l'algoritmo di classificazione della top 250 di IMDb. Applica una media ponderata che combina la tua valutazione media per ciascun autore con il numero di sue opere lette, attribuendo maggiore peso agli autori che presentano più titoli valutati positivamente rispetto a quelli con poche letture ma medie elevate.",
+                thPos: "Pos.",
+                thBayesAuthor: "Nome autore",
+                thWeightedScore: "Punteggio indice pesato",
+                thRealAvg: "Media voti reale",
+                thBayesBooks: "Libri letti",
+                lblSpotlight: "⭐ Selezione casuale dei tuoi libri a 5 stelle",
+                thTitle: "Titolo",
+                thAuthorFav: "Autore",
+                thPubYear: "Anno di pubblicazione",
+                dsPages: "Pagine lette totali",
+                dsBooks: "Libri letti",
+                dsAvgRating: "Valutazione media",
+                dsBooksCount: "Numero di libri",
+                booksSuffix: "libri",
+                pagesSuffix: "pagine",
+                notSpecified: "Non specificato",
+                starsLabel: "stelle",
+                starLabelSingle: "stella",
+                errNoFile: "Errore: Nessun file caricato."
+            }
+        };
+
+        let currentLang = 'en';
+        let parsedBooks = [];
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            
+            const t = langs[lang];
+            document.getElementById('mainTitle').innerText = t.mainTitle;
+            document.getElementById('subtitle').innerText = t.subtitle;
+            document.getElementById('btnUpload').innerText = t.btnUpload;
+            document.getElementById('placeholderText').innerText = t.placeholderText;
+            document.getElementById('lblPagesTimeline').innerText = t.lblPagesTimeline;
+            document.getElementById('lblBooksTimeline').innerText = t.lblBooksTimeline;
+            document.getElementById('lblDecadeChart').innerText = t.lblDecadeChart;
+            document.getElementById('lblStarChart').innerText = t.lblStarChart;
+            document.getElementById('lblTopAuthorsBooks').innerText = t.lblTopAuthorsBooks;
+            document.getElementById('thAuthorBooks').innerText = t.thAuthorBooks;
+            document.getElementById('thBooksReg').innerText = t.thBooksReg;
+            document.getElementById('lblTopAuthorsPages').innerText = t.lblTopAuthorsPages;
+            document.getElementById('thAuthorPages').innerText = t.thAuthorPages;
+            document.getElementById('thTotalPages').innerText = t.thTotalPages;
+            document.getElementById('lblHighestRatedAuthors').innerText = t.lblHighestRatedAuthors;
+            document.getElementById('thAuthorRated').innerText = t.thAuthorRated;
+            document.getElementById('thAvgRating').innerText = t.thAvgRating;
+            document.getElementById('thBooksRead').innerText = t.thBooksRead;
+            document.getElementById('lblShelvesTable').innerText = t.lblShelvesTable;
+            document.getElementById('thShelfCat').innerText = t.thShelfCat;
+            document.getElementById('thAvgRatingShelf').innerText = t.thAvgRatingShelf;
+            document.getElementById('thBooksReadShelf').innerText = t.thBooksReadShelf;
+            document.getElementById('lblHallOfFame').innerText = t.lblHallOfFame;
+            document.getElementById('lblHallOfFameDesc').innerText = t.lblHallOfFameDesc;
+            document.getElementById('thPos').innerText = t.thPos;
+            document.getElementById('thBayesAuthor').innerText = t.thBayesAuthor;
+            document.getElementById('thWeightedScore').innerText = t.thWeightedScore;
+            document.getElementById('thRealAvg').innerText = t.thRealAvg;
+            document.getElementById('thBayesBooks').innerText = t.thBayesBooks;
+            document.getElementById('lblSpotlight').innerText = t.lblSpotlight;
+            document.getElementById('thTitle').innerText = t.thTitle;
+            document.getElementById('thAuthorFav').innerText = t.thAuthorFav;
+            document.getElementById('thPubYear').innerText = t.thPubYear;
+
+            if (parsedBooks.length > 0) {
+                renderDashboard(parsedBooks);
+            }
+        }
+
+        document.getElementById('langSelect').addEventListener('change', e => {
+            setLanguage(e.target.value);
+        });
+
         document.getElementById('csvFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -343,6 +537,7 @@
                 });
             }
 
+            parsedBooks = books;
             renderDashboard(books);
         }
 
@@ -350,13 +545,15 @@
 
         function renderDashboard(books) {
             document.getElementById('placeholder').style.display = 'none';
-            document.getElementById('instructions').style.display = 'none'; // Nasconde le istruzioni dopo il caricamento
+            document.getElementById('instructions').style.display = 'none';
             document.getElementById('dashboardContent').style.display = 'grid';
+
+            const t = langs[currentLang];
+            const localeStr = currentLang === 'it' ? 'it-IT' : 'en-US';
 
             let totalGlobalRating = 0;
             let totalGlobalCount = 0;
 
-            // Timelines
             const timelineData = {};
             books.forEach(b => {
                 if (b.rating > 0) {
@@ -372,7 +569,6 @@
             const timelineYears = Object.keys(timelineData).sort();
             const globalMeanRating = totalGlobalCount > 0 ? (totalGlobalRating / totalGlobalCount) : 3.5;
 
-            // Decades
             const decadeGroups = {};
             books.forEach(b => {
                 if (b.year && b.rating > 0) {
@@ -388,150 +584,3 @@
             })).sort((a, b) => b.avg - a.avg).slice(0, 10);
 
             const minDecadeAvg = Math.max(1, Math.floor(Math.min(...decadesSorted.map(d => d.avg)) - 0.5));
-
-            // Stars
-            const stars = { 5:0, 4:0, 3:0, 2:0, 1:0 };
-            books.forEach(b => { if (b.rating > 0) stars[b.rating] += 1; });
-
-            // Shelves
-            const shelfGroups = {};
-            books.forEach(b => {
-                if (b.rating > 0) {
-                    b.shelves.forEach(shelf => {
-                        if (shelf && !['to-read', 'currently-reading', 'read'].includes(shelf)) {
-                            if (!shelfGroups[shelf]) shelfGroups[shelf] = { totalRating: 0, count: 0 };
-                            shelfGroups[shelf].totalRating += b.rating;
-                            shelfGroups[shelf].count += 1;
-                        }
-                    });
-                }
-            });
-            const shelvesSorted = Object.keys(shelfGroups).map(s => ({
-                name: s, avg: shelfGroups[s].totalRating / shelfGroups[s].count, count: shelfGroups[s].count
-            })).sort((a, b) => b.avg - a.avg).slice(0, 5);
-
-            // Authors Core Processing
-            const authorGroups = {};
-            const authorCountsTotal = {};
-            const authorPagesTotal = {};
-            
-            books.forEach(b => {
-                if (b.author) {
-                    authorCountsTotal[b.author] = (authorCountsTotal[b.author] || 0) + 1;
-                    authorPagesTotal[b.author] = (authorPagesTotal[b.author] || 0) + b.pages;
-                    if (b.rating > 0) {
-                        if (!authorGroups[b.author]) authorGroups[b.author] = { totalRating: 0, count: 0 };
-                        authorGroups[b.author].totalRating += b.rating;
-                        authorGroups[b.author].count += 1;
-                    }
-                }
-            });
-
-            const authorsBooksSorted = Object.keys(authorCountsTotal).map(a => ({ name: a, count: authorCountsTotal[a] })).sort((a, b) => b.count - a.count).slice(0, 5);
-            const authorsPagesSorted = Object.keys(authorPagesTotal).map(a => ({ name: a, pages: authorPagesTotal[a] })).sort((a, b) => b.pages - a.pages).slice(0, 5);
-            
-            const authorsSorted = Object.keys(authorGroups).map(a => ({
-                name: a, avg: authorGroups[a].totalRating / authorGroups[a].count, count: authorGroups[a].count
-            })).filter(a => a.count >= 7).sort((a, b) => b.avg - a.avg).slice(0, 5);
-
-            const minBooksParam = 7;
-            const bayesianAuthors = Object.keys(authorGroups).map(a => {
-                const v = authorGroups[a].count;
-                const R = authorGroups[a].totalRating / v;
-                const m = minBooksParam;
-                const C = globalMeanRating;
-                
-                const score = (v / (v + m) * R) + (m / (v + m) * C);
-                
-                return { name: a, score: score, avg: R, count: v };
-            })
-            .filter(a => a.count >= 7)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 10);
-
-            // Reset vecchi grafici
-            Object.keys(charts).forEach(key => charts[key].destroy());
-
-            // 1. Pages Timeline Chart
-            charts.pagesTimeline = new Chart(document.getElementById('pagesTimelineChart'), {
-                type: 'line',
-                data: {
-                    labels: timelineYears,
-                    datasets: [{ label: 'Pagine lette totali', data: timelineYears.map(y => timelineData[y].pages), borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.03)', fill: true, tension: 0.3, pointRadius: 4 }]
-                }
-            });
-
-            // 2. Books Timeline Chart
-            charts.booksTimeline = new Chart(document.getElementById('booksTimelineChart'), {
-                type: 'bar',
-                data: {
-                    labels: timelineYears,
-                    datasets: [{ label: 'Libri letti', data: timelineYears.map(y => timelineData[y].books), backgroundColor: '#d97706', borderRadius: 4 }]
-                }
-            });
-
-            // 3. Decade Chart
-            charts.decade = new Chart(document.getElementById('decadeChart'), {
-                type: 'bar',
-                data: {
-                    labels: decadesSorted.map(d => d.label),
-                    datasets: [{ label: 'Valutazione media', data: decadesSorted.map(d => d.avg.toFixed(2)), backgroundColor: '#b45309', borderRadius: 4 }]
-                },
-                options: { indexAxis: 'y', scales: { x: { min: minDecadeAvg, max: 5.0 } } }
-            });
-
-            // 4. Star Chart
-            charts.star = new Chart(document.getElementById('starChart'), {
-                type: 'bar',
-                data: {
-                    labels: ['5 stelle', '4 stelle', '3 stelle', '2 stelle', '1 stella'],
-                    datasets: [{ label: 'Numero di libri', data: [stars[5], stars[4], stars[3], stars[2], stars[1]], backgroundColor: '#f59e0b', borderRadius: 6 }]
-                }
-            });
-
-            // Rendering Tabelle
-            const booksTbody = document.querySelector('#volumeBooksTable tbody');
-            booksTbody.innerHTML = '';
-            authorsBooksSorted.forEach(a => { booksTbody.innerHTML += `<tr><td><span class="badge badge-count">${a.name}</span></td><td><b>${a.count}</b> libri</td></tr>`; });
-
-            const pagesTbody = document.querySelector('#volumePagesTable tbody');
-            pagesTbody.innerHTML = '';
-            authorsPagesSorted.forEach(a => { pagesTbody.innerHTML += `<tr><td><span class="badge badge-pages">${a.name}</span></td><td><b>${a.pages.toLocaleString()}</b> pagine</td></tr>`; });
-
-            document.querySelector('#authorsTable tbody').innerHTML = '';
-            authorsSorted.forEach(a => { document.querySelector('#authorsTable tbody').innerHTML += `<tr><td><span class="badge">${a.name}</span></td><td><b>${a.avg.toFixed(2)}</b> / 5.0</td><td>${a.count} libri</td></tr>`; });
-
-            document.querySelector('#shelvesTable tbody').innerHTML = '';
-            shelvesSorted.forEach(s => { document.querySelector('#shelvesTable tbody').innerHTML += `<tr><td><span class="badge badge-shelf">${s.name}</span></td><td><b>${s.avg.toFixed(2)}</b> / 5.0</td><td>${s.count} libri</td></tr>`; });
-
-            // Bayesian Table Render
-            const bayesTbody = document.querySelector('#bayesAuthorsTable tbody');
-            bayesTbody.innerHTML = '';
-            bayesianAuthors.forEach((a, i) => {
-                bayesTbody.innerHTML += `
-                    <tr>
-                        <td><b>#${i+1}</b></td>
-                        <td><span class="badge badge-bayes">${a.name}</span></td>
-                        <td><b style="color:#b45309;">${a.score.toFixed(3)}</b></td>
-                        <td>${a.avg.toFixed(2)}</td>
-                        <td><b>${a.count}</b> libri letti</td>
-                    </tr>`;
-            });
-
-            // RANDOMIZED 5-Star Spotlight Rendering
-            const favoritesTbody = document.querySelector('#favoritesTable tbody');
-            favoritesTbody.innerHTML = '';
-            
-            const perfectBooks = books.filter(b => b.rating === 5);
-            for (let i = perfectBooks.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [perfectBooks[i], perfectBooks[j]] = [perfectBooks[j], perfectBooks[i]];
-            }
-            
-            perfectBooks.slice(0, 10).forEach(b => {
-                favoritesTbody.innerHTML += `<tr><td>${b.title}</td><td><span class="badge" style="background-color:#f5f5f4; color:#44403c;">${b.author}</span></td><td>${b.year || 'Non specificato'}</td></tr>`;
-            });
-        }
-    </script>
-</body>
-</html>
