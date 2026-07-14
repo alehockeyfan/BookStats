@@ -154,11 +154,15 @@
             font-style: italic;
             font-size: 16px;
         }
-        #error-msg {
-            color: #b91c1c;
-            font-weight: 600;
+        #error-banner {
+            background-color: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
             text-align: center;
-            margin: 20px 0;
         }
         table {
             width: 100%;
@@ -240,7 +244,7 @@
         </div>
     </div>
 
-    <div id="error-msg" style="display:none;"></div>
+    <div id="error-banner" style="display: none;"></div>
 
     <div id="dashboardContent" class="grid" style="display:none;">
         <div class="card">
@@ -372,8 +376,9 @@
                 notSpecified: "Not specified",
                 starsLabel: "stars",
                 starLabelSingle: "star",
+                points: "pts",
                 errNoFile: "Error: No file loaded.",
-                errHeaders: "Error: Columns 'Title', 'Author' or 'My Rating' not found in the CSV file."
+                errHeaders: "Error: Columns 'Title', 'Author' or 'My Rating' not found in the CSV file. Please make sure you are loading the correct Goodreads export."
             },
             it: {
                 mainTitle: "📚 Le mie statistiche di lettura",
@@ -418,8 +423,9 @@
                 notSpecified: "Non specificato",
                 starsLabel: "stelle",
                 starLabelSingle: "stella",
+                points: "pti",
                 errNoFile: "Errore: Nessun file caricato.",
-                errHeaders: "Errore: Colonne 'Title', 'Author' o 'My Rating' non trovate nel file CSV."
+                errHeaders: "Errore: Colonne 'Title', 'Author' o 'My Rating' non trovate nel file CSV. Assicurati di caricare il file esportato originale di Goodreads."
             }
         };
 
@@ -480,7 +486,7 @@
 
             const reader = new FileReader();
             reader.onload = function(evt) { 
-                document.getElementById('error-msg').style.display = 'none';
+                document.getElementById('error-banner').style.display = 'none';
                 parseCSV(evt.target.result); 
             };
             reader.readAsText(file, "UTF-8");
@@ -491,14 +497,17 @@
             let row = [""];
             let inQuotes = false;
 
-            const splitLines = text.split('\n');
+            const cleanText = text.trim();
+            const splitLines = cleanText.split('\n');
             if (splitLines.length === 0) return;
+            
+            // Trova il separatore basandoci sulla prima riga
             const firstLine = splitLines[0];
             const separator = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
 
-            for (let i = 0; i < text.length; i++) {
-                let c = text[i];
-                let next = text[i+1];
+            for (let i = 0; i < cleanText.length; i++) {
+                let c = cleanText[i];
+                let next = cleanText[i+1];
                 if (c === '"') {
                     if (inQuotes && next === '"') { row[row.length - 1] += '"'; i++; }
                     else { inQuotes = !inQuotes; }
@@ -515,7 +524,8 @@
             if (row.length > 1 || row[0] !== '') lines.push(row);
             if (lines.length < 2) return;
 
-            const headers = lines[0].map(h => h.replace(/^"|"$/g, '').trim());
+            // Pulizia aggressiva degli header (rimozione del BOM \ufeff e delle virgolette esterne)
+            const headers = lines[0].map(h => h.replace(/^\ufeff/, '').replace(/^"|"$/g, '').trim());
             
             const titleIdx = headers.indexOf('Title');
             const authorIdx = headers.indexOf('Author');
@@ -526,10 +536,12 @@
             const fallbackYearIdx = headers.indexOf('Year Published');
             const dateReadIdx = headers.indexOf('Date Read');
 
+            // Verifica delle colonne necessarie
             if (titleIdx === -1 || authorIdx === -1 || ratingIdx === -1) {
-                const errMsg = document.getElementById('error-msg');
-                errMsg.innerText = langs[currentLang].errHeaders;
-                errMsg.style.display = 'block';
+                const banner = document.getElementById('error-banner');
+                banner.innerText = langs[currentLang].errHeaders;
+                banner.style.display = 'block';
+                console.error("Missing headers. Detected headers were: ", headers);
                 return;
             }
 
@@ -735,7 +747,7 @@
                     <tr>
                         <td><b>#${i+1}</b></td>
                         <td><span class="badge badge-bayes">${a.name}</span></td>
-                        <td><b style="color:#b45309;">${a.score.toLocaleString(localeStr, {minimumFractionDigits: 3, maximumFractionDigits: 3})}</b></td>
+                        <td><b style="color:#b45309;">${a.score.toLocaleString(localeStr, {minimumFractionDigits: 3, maximumFractionDigits: 3})} ${t.points}</b></td>
                         <td>${a.avg.toLocaleString(localeStr, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                         <td><b>${a.count.toLocaleString(localeStr)}</b> ${t.booksSuffix}</td>
                     </tr>`;
