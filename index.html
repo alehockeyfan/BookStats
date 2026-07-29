@@ -1,818 +1,1129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>BookStats</title>
-    
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #fafaf9;
-            color: #1c1917;
-            margin: 0;
-            padding: 35px;
-        }
-        .header {
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #e7e5e4;
-            padding-bottom: 25px;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 32px;
-            color: #451a03;
-        }
-        .header p {
-            margin: 5px 0 0 0;
-            color: #78716c;
-            font-size: 16px;
-        }
-        .actions-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .upload-btn-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-        .btn {
-            border: none;
-            color: white;
-            background-color: #d97706;
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2);
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn:hover {
-            background-color: #b45309;
-            transform: translateY(-1px);
-        }
-        .upload-btn-wrapper input[type=file] {
-            font-size: 100px;
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-        .lang-selector {
-            padding: 10px 14px;
-            border: 1px solid #cbd5e0;
-            border-radius: 8px;
-            background: #fff;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            outline: none;
-        }
-        .lang-selector:focus {
-            border-color: #d97706;
-        }
-        
-        /* Sezione Istruzioni Bilingue */
-        .instructions-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 30px;
-            padding: 24px;
-            background-color: #fef3c7;
-            border: 1px solid #fde047;
-            border-radius: 16px;
-            color: #78350f;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
-        }
-        .instruction-column {
-            font-size: 0.9rem;
-            line-height: 1.6;
-        }
-        .instruction-column h3 {
-            text-align: left;
-            margin-top: 0;
-            margin-bottom: 12px;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #451a03;
-        }
-        .instruction-column ol {
-            margin: 0;
-            padding-left: 20px;
-        }
-        .instruction-column li {
-            margin-bottom: 8px;
-        }
-        .instruction-column code {
-            background-color: rgba(255, 255, 255, 0.6);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: inherit;
-            font-weight: bold;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-        .card {
-            background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04);
-            padding: 28px;
-            border: 1px solid #e7e5e4;
-        }
-        .card h2 {
-            margin-top: 0;
-            font-size: 20px;
-            color: #451a03;
-            border-bottom: 1px solid #f5f5f4;
-            padding-bottom: 14px;
-            margin-bottom: 20px;
-        }
-        .placeholder-text {
-            color: #a8a29e;
-            text-align: center;
-            padding: 40px 0;
-            font-style: italic;
-            font-size: 16px;
-        }
-        #error-banner {
-            background-color: #fee2e2;
-            border: 1px solid #fca5a5;
-            color: #991b1b;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-weight: 500;
-            text-align: center;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-        }
-        th, td {
-            padding: 12px 14px;
-            border-bottom: 1px solid #f5f5f4;
-            font-size: 14px;
-        }
-        th {
-            background-color: #fefcbf;
-            color: #78350f;
-            font-weight: 600;
-        }
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            background-color: #fef3c7;
-            color: #92400e;
-        }
-        .badge-shelf { background-color: #f0fdf4; color: #166534; }
-        .badge-count { background-color: #fdf2f8; color: #be185d; }
-        .badge-pages { background-color: #fff7ed; color: #c2410c; }
-        .badge-bayes { background-color: #fef3c7; color: #78350f; border: 1px solid #fde047; }
-        .full-width { grid-column: span 2; }
-
-        @media(max-width: 768px) {
-            .grid { grid-template-columns: 1fr; }
-            .full-width { grid-column: span 1; }
-            .instructions-container { grid-template-columns: 1fr; gap: 16px; }
-            .header { flex-direction: column; align-items: flex-start; gap: 15px; }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BookStats</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #fffaf0;
+      --surface: #fffbeb;
+      --surface-2: #fef3c7;
+      --surface-3: #fde68a;
+      --text: #1f2933;
+      --muted: #6b7280;
+      --border: rgba(252, 211, 77, 0.45);
+      --accent: #f59e0b;
+      --accent-2: #d97706;
+      --accent-soft: rgba(245, 158, 11, 0.14);
+      --success: #22c55e;
+      --danger: #ef4444;
+      --shadow: 0 18px 38px rgba(245, 158, 11, 0.2);
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+    [data-theme="dark"] {
+      --bg: #111827;
+      --surface: #1f2937;
+      --surface-2: #111827;
+      --surface-3: #4b5563;
+      --text: #f9fafb;
+      --muted: #e5e7eb;
+      --border: rgba(250, 204, 21, 0.55);
+      --accent: #facc15;
+      --accent-2: #eab308;
+      --accent-soft: rgba(250, 204, 21, 0.16);
+      --success: #22c55e;
+      --danger: #f87171;
+      --shadow: 0 18px 38px rgba(0, 0, 0, 0.4);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(180deg, var(--bg) 0%, var(--surface-2) 100%);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .shell { max-width: 1380px; margin: 0 auto; padding: 28px; }
+    .skip-link {
+      position: absolute; left: -9999px; top: 8px; background: var(--accent);
+      color: white; padding: 10px 14px; border-radius: 10px;
+    }
+    .skip-link:focus { left: 8px; z-index: 10; }
+    .topbar {
+      display: flex; justify-content: space-between; gap: 24px; align-items: flex-start;
+      padding: 26px 28px; background: color-mix(in srgb, var(--surface) 92%, transparent);
+      border: 1px solid var(--border); border-radius: 28px; box-shadow: var(--shadow);
+      backdrop-filter: blur(10px); margin-bottom: 24px;
+    }
+    .brand-wrap { max-width: 780px; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px;
+      border-radius: 999px; background: var(--accent-soft); color: var(--accent);
+      font-size: 13px; font-weight: 700; letter-spacing: .02em; margin-bottom: 14px;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 1.3rem + 2vw, 3.4rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+    .subtitle {
+      margin: 12px 0 0;
+      color: var(--muted);
+      max-width: 66ch;
+      font-size: 1.03rem;
+    }
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .control, .btn {
+      min-height: 46px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 600;
+      padding: 0 14px;
+    }
+    .control { min-width: 150px; }
+    .theme-btn, .btn {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 10px 20px rgba(245, 158, 11, 0.25);
+      padding: 0 18px;
+    }
+    .btn:hover, .theme-btn:hover, .control:hover { filter: brightness(0.98); }
+    .upload-wrap { position: relative; overflow: hidden; }
+    .upload-wrap input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 0.85fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .guide {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .guide h3, .panel h2 {
+      margin-top: 0;
+      margin-bottom: 14px;
+      font-size: 1.08rem;
+      letter-spacing: -0.01em;
+    }
+    .guide ol { margin: 0; padding-left: 18px; color: var(--muted); }
+    .guide li { margin-bottom: 8px; }
+    .stat-intro { display: grid; gap: 12px; align-content: start; }
+    .callout {
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: linear-gradient(145deg, var(--accent-soft), transparent 80%);
+      border: 1px solid var(--border);
+    }
+    .callout strong { display: block; font-size: 1.05rem; margin-bottom: 4px; }
+    #error-banner {
+      display: none;
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(248, 113, 113, 0.08);
+      color: var(--danger);
+      border: 1px solid rgba(248, 113, 113, 0.5);
+      font-weight: 600;
+    }
+    .kpi-grid {
+      display: none;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+    .kpi-label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .kpi-value {
+      font-size: clamp(1.6rem, 1.2rem + 1vw, 2.4rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+    .kpi-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .dashboard {
+      display: none;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+      min-width: 0;
+    }
+    .card h2 { margin: 0 0 16px; font-size: 1.08rem; }
+    .full { grid-column: 1 / -1; }
+    .placeholder {
+      text-align: center;
+      padding: 54px 24px;
+      color: var(--muted);
+      font-style: italic;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+    }
+    .table-wrap { overflow-x: auto; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .muted { color: var(--muted); }
+    .mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .mini-card {
+      padding: 18px;
+      border-radius: 18px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+    }
+    .mini-card .label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 8px;
+    }
+    .mini-card .value {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    code {
+      background: var(--surface-2);
+      border-radius: 8px;
+      padding: 2px 6px;
+    }
+    canvas { max-height: 320px; }
+    @media (max-width: 1100px) {
+      .hero-grid, .dashboard, .kpi-grid { grid-template-columns: 1fr 1fr; }
+      .hero-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 780px) {
+      .shell { padding: 16px; }
+      .topbar { padding: 20px; flex-direction: column; align-items: stretch; }
+      .toolbar { justify-content: stretch; }
+      .toolbar > * { width: 100%; }
+      .guide, .dashboard, .kpi-grid, .mini-grid { grid-template-columns: 1fr; }
+      .card, .panel { padding: 18px; }
+      th, td { padding: 10px 8px; }
+    }
+  </style>
 </head>
 <body>
-
-    <div class="header">
-        <div>
-            <h1 id="mainTitle">📚 My Reading Stats</h1>
-            <p id="subtitle">Upload your Goodreads export file to instantly generate your personalized literary dashboard.</p>
+  <a href="#content" class="skip-link">Skip to content</a>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="eyebrow" id="eyebrow">Goodreads CSV dashboard</div>
+        <h1 id="mainTitle">BookStats</h1>
+        <p class="subtitle" id="subtitle">Upload your Goodreads export to turn your reading history into a cleaner, richer personal dashboard.</p>
+      </div>
+      <div class="toolbar">
+        <select id="langSelect" class="control" aria-label="Language selector">
+          <option value="en">🇬🇧 English</option>
+          <option value="it">🇮🇹 Italiano</option>
+        </select>
+        <button type="button" class="control theme-btn" id="themeToggle" aria-label="Toggle dark mode">🌙 Theme</button>
+        <div class="upload-wrap">
+          <button class="btn" id="btnUpload" type="button">Load Goodreads CSV</button>
+          <input type="file" id="csvFile" accept=".csv" aria-label="Upload Goodreads CSV" />
         </div>
-        <div class="actions-container">
-            <select id="langSelect" class="lang-selector">
-                <option value="en">🇬🇧 English</option>
-                <option value="it">🇮🇹 Italiano</option>
-            </select>
-            <div class="upload-btn-wrapper">
-                <button class="btn" id="btnUpload">🔄 Load Goodreads CSV</button>
-                <input type="file" id="csvFile" accept=".csv" />
+      </div>
+    </header>
+
+    <main id="content">
+      <section class="hero-grid" id="instructionsWrap">
+        <div class="panel">
+          <h2 id="guideTitle">How it works</h2>
+          <div id="instructions" class="guide">
+            <div>
+              <h3>🇬🇧 Quick guide</h3>
+              <ol>
+                <li>Open <code>goodreads.com</code>, go to <code>My Books</code>, then <code>Import/Export</code>.</li>
+                <li>Download the CSV generated by <code>Export Library</code>.</li>
+                <li>Load the file with the button above.</li>
+                <li>All parsing happens in your browser.</li>
+              </ol>
             </div>
+            <div>
+              <h3>🇮🇹 Guida rapida</h3>
+              <ol>
+                <li>Apri <code>goodreads.com</code>, vai su <code>My Books</code>, poi <code>Import/Export</code>.</li>
+                <li>Scarica il CSV generato da <code>Export Library</code>.</li>
+                <li>Carica il file con il pulsante qui sopra.</li>
+                <li>Tutta l'elaborazione avviene nel browser.</li>
+              </ol>
+            </div>
+          </div>
         </div>
-    </div>
+        <aside class="panel stat-intro">
+          <div class="callout">
+            <strong id="calloutTitle">A cleaner reading portrait</strong>
+            <span id="calloutText">You now get KPI cards, annual trends, decade ranking, shelf quality, longest books, favorites, and a quick personal profile panel.</span>
+          </div>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <div class="label" id="preview1Label">Best year</div>
+              <div class="value" id="preview1Value">—</div>
+            </div>
+            <div class="mini-card">
+              <div class="label" id="preview2Label">Reading streak</div>
+              <div class="value" id="preview2Value">—</div>
+            </div>
+            <div class="mini-card">
+              <div class="label" id="preview3Label">Top shelf</div>
+              <div class="value" id="preview3Value">—</div>
+            </div>
+            <div class="mini-card">
+              <div class="label" id="preview4Label">Longest book</div>
+              <div class="value" id="preview4Value">—</div>
+            </div>
+          </div>
+        </aside>
+      </section>
 
-    <div id="instructions" class="instructions-container">
-        <div class="instruction-column">
-            <h3>🇬🇧 Quick Guide</h3>
-            <ol>
-                <li><b>Language Selector</b>: Use the dropdown in the top-right corner to switch between English and Italian at any time.</li>
-                <li><b>Export from Goodreads</b>: Log into <code>goodreads.com</code>, click on <code>My Books</code>, then click on <code>Import/Export</code> in the sidebar.</li>
-                <li><b>Download</b>: Click <code>Export Library</code> and download the CSV file from the link that appears.</li>
-                <li><b>Load File</b>: Drag or load the downloaded file using the orange button in the header above!</li>
-                <li><b>Privacy</b>: Your data is processed entirely inside your web browser. No files are uploaded to any external server.</li>
-            </ol>
-        </div>
-        <div class="instruction-column" style="border-left: 1px solid #fde047; padding-left: 20px;">
-            <h3>🇮🇹 Guida Rapida</h3>
-            <ol>
-                <li><b>Scelta Lingua</b>: Usa il menu a tendina in alto a destra per cambiare la lingua tra Italiano e Inglese in qualsiasi momento.</li>
-                <li><b>Esportare da Goodreads</b>: Accedi a <code>goodreads.com</code> dal computer, clicca su <code>My Books</code>, quindi seleziona <code>Import/Export</code> nella barra laterale.</li>
-                <li><b>Download</b>: Clicca sul pulsante <code>Export Library</code> e scarica il file CSV generato tramite il link che appare.</li>
-                <li><b>Carica File</b>: Trascina o carica il file CSV appena scaricato usando il pulsante arancione qui sopra!</li>
-                <li><b>Privacy</b>: I tuoi dati sono elaborati interamente all'interno del browser. Nessun dato viene inviato a server esterni.</li>
-            </ol>
-        </div>
-    </div>
+      <div id="error-banner"></div>
 
-    <div id="error-banner" style="display: none;"></div>
+      <section id="kpiGrid" class="kpi-grid" aria-label="Key reading metrics">
+        <article class="kpi-card"><div class="kpi-label" id="kpiBooksLabel">Books logged</div><div class="kpi-value" id="kpiBooks">—</div><div class="kpi-note" id="kpiBooksNote">Across your imported library</div></article>
+        <article class="kpi-card"><div class="kpi-label" id="kpiPagesLabel">Pages tracked</div><div class="kpi-value" id="kpiPages">—</div><div class="kpi-note" id="kpiPagesNote">Based on page counts in the CSV</div></article>
+        <article class="kpi-card"><div class="kpi-label" id="kpiAvgLabel">Average rating</div><div class="kpi-value" id="kpiAvg">—</div><div class="kpi-note" id="kpiAvgNote">Only books with a rating</div></article>
+        <article class="kpi-card"><div class="kpi-label" id="kpiBestYearLabel">Best year</div><div class="kpi-value" id="kpiBestYear">—</div><div class="kpi-note" id="kpiBestYearNote">Highest yearly average with at least 15 rated books</div></article>
+	<article class="kpi-card"><div class="kpi-label" id="kpiAuthorsLabel">Distinct authors</div><div class="kpi-value" id="kpiAuthors">—</div><div class="kpi-note" id="kpiAuthorsNote">Approximate — based on exact name matches</div></article>
+      </section>
 
-    <div id="dashboardContent" class="grid" style="display:none;">
+      <section id="dashboardContent" class="dashboard">
         <div class="card">
-            <h2 id="lblPagesTimeline">📈 Pages Read Per Year</h2>
-            <canvas id="pagesTimelineChart"></canvas>
+          <h2 id="lblPagesTimeline">Pages Read Per Year</h2>
+          <canvas id="pagesTimelineChart"></canvas>
+        </div>
+        <div class="card">
+          <h2 id="lblBooksTimeline">Books Read Per Year</h2>
+          <canvas id="booksTimelineChart"></canvas>
+        </div>
+        <div class="card">
+          <h2 id="lblDecadeChart">Decade Leaderboard</h2>
+          <canvas id="decadeChart"></canvas>
+        </div>
+        <div class="card">
+          <h2 id="lblStarChart">Rating Distribution</h2>
+          <canvas id="starChart"></canvas>
+        </div>
+
+        <div class="card full">
+          <h2 id="lblProfile">Reading profile</h2>
+          <div class="mini-grid">
+            <div class="mini-card"><div class="label" id="profile1Label">Most active year</div><div class="value" id="profile1Value">—</div></div>
+            <div class="mini-card"><div class="label" id="profile2Label">Longest yearly streak</div><div class="value" id="profile2Value">—</div></div>
+            <div class="mini-card"><div class="label" id="profile3Label">Most used shelf</div><div class="value" id="profile3Value">—</div></div>
+            <div class="mini-card"><div class="label" id="profile4Label">5-star books</div><div class="value" id="profile4Value">—</div></div>
+          </div>
         </div>
 
         <div class="card">
-            <h2 id="lblBooksTimeline">📊 Books Read Per Year</h2>
-            <canvas id="booksTimelineChart"></canvas>
-        </div>
-
-        <div class="card">
-            <h2 id="lblDecadeChart">🏆 Decade Leaderboard (by average rating)</h2>
-            <canvas id="decadeChart"></canvas>
-        </div>
-
-        <div class="card">
-            <h2 id="lblStarChart">📊 Rating Distribution (stars)</h2>
-            <canvas id="starChart"></canvas>
-        </div>
-
-        <div class="card">
-            <h2 id="lblTopAuthorsBooks">📚 Most Read Authors (by number of books)</h2>
+          <h2 id="lblTopAuthorsBooks">Most Read Authors (books)</h2>
+          <div class="table-wrap">
             <table id="volumeBooksTable">
-                <thead><tr><th id="thAuthorBooks">Author Name</th><th id="thBooksReg">Registered Books</th></tr></thead>
-                <tbody></tbody>
+              <thead><tr><th id="thAuthorBooks">Author</th><th id="thBooksReg">Books</th></tr></thead>
+              <tbody></tbody>
             </table>
+          </div>
         </div>
 
         <div class="card">
-            <h2 id="lblTopAuthorsPages">📖 Most Read Authors (by total pages read)</h2>
+          <h2 id="lblTopAuthorsPages">Most Read Authors (pages)</h2>
+          <div class="table-wrap">
             <table id="volumePagesTable">
-                <thead><tr><th id="thAuthorPages">Author Name</th><th id="thTotalPages">Total Pages Read</th></tr></thead>
-                <tbody></tbody>
+              <thead><tr><th id="thAuthorPages">Author</th><th id="thTotalPages">Pages</th></tr></thead>
+              <tbody></tbody>
             </table>
+          </div>
         </div>
 
         <div class="card">
-            <h2 id="lblHighestRatedAuthors">✍️ Your Highest Rated Authors (min. 7 books)</h2>
+          <h2 id="lblHighestRatedAuthors">Highest Rated Authors</h2>
+          <div class="table-wrap">
             <table id="authorsTable">
-                <thead><tr><th id="thAuthorRated">Author Name</th><th id="thAvgRating">Avg Rating</th><th id="thBooksRead">Books Read</th></tr></thead>
-                <tbody></tbody>
+              <thead><tr><th id="thAuthorRated">Author</th><th id="thAvgRating">Avg rating</th><th id="thBooksRead">Books read</th></tr></thead>
+              <tbody></tbody>
             </table>
+          </div>
         </div>
 
         <div class="card">
-            <h2 id="lblShelvesTable">🏷️ Best Custom Bookshelves (average rating)</h2>
+          <h2 id="lblShelvesTable">Best Custom Bookshelves</h2>
+          <div class="table-wrap">
             <table id="shelvesTable">
-                <thead><tr><th id="thShelfCat">Shelf Category</th><th id="thAvgRatingShelf">Avg Rating</th><th id="thBooksReadShelf">Books Read</th></tr></thead>
-                <tbody></tbody>
+              <thead><tr><th id="thShelfCat">Shelf</th><th id="thAvgRatingShelf">Avg rating</th><th id="thBooksReadShelf">Books read</th></tr></thead>
+              <tbody></tbody>
             </table>
+          </div>
         </div>
 
-        <div class="card full-width">
-            <h2 id="lblHallOfFame">🏆 Authors Hall of Fame (Bayesian Consistency Index - min. 7 books)</h2>
-            <p id="lblHallOfFameDesc" style="color: #78716c; font-size: 14px; margin-top: -10px; margin-bottom: 20px;">
-                Calculated using the IMDb Top 250 ranking algorithm. It applies a weighted average that combines your average rating for each author with the number of their works you've read, giving more weight to authors with a larger volume of highly-rated books.
-            </p>
+        <div class="card">
+          <h2 id="lblMostUsedShelves">Most Used Bookshelves</h2>
+          <div class="table-wrap">
+            <table id="mostUsedShelvesTable">
+              <thead><tr><th id="thMostUsedShelf">Shelf</th><th id="thMostUsedCount">Books</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 id="lblBestYears">Best Reading Years</h2>
+          <div class="table-wrap">
+            <table id="bestYearsTable">
+              <thead><tr><th id="thYear">Year</th><th id="thYearAvg">Avg rating</th><th id="thYearBooks">Rated books</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card full">
+          <h2 id="lblHallOfFame">Authors Hall of Fame</h2>
+          <p id="lblHallOfFameDesc" class="muted">Weighted with a Bayesian score inspired by ranking systems that combine average rating and reading volume.</p>
+          <div class="table-wrap">
             <table id="bayesAuthorsTable">
-                <thead>
-                    <tr>
-                        <th id="thPos">Pos.</th>
-                        <th id="thBayesAuthor">Author Name</th>
-                        <th id="thWeightedScore">Weighted Index Score</th>
-                        <th id="thRealAvg">Real Avg Rating</th>
-                        <th id="thBayesBooks">Books Read</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
+              <thead>
+                <tr>
+                  <th id="thPos">Pos.</th>
+                  <th id="thBayesAuthor">Author</th>
+                  <th id="thWeightedScore">Weighted score</th>
+                  <th id="thRealAvg">Real avg</th>
+                  <th id="thBayesBooks">Books</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
             </table>
+          </div>
         </div>
 
-        <div class="card full-width">
-            <h2 id="lblLongestBooks">📖 Top 10 Longest Books</h2>
+        <div class="card full">
+          <h2 id="lblLongestBooks">Top 10 Longest Books</h2>
+          <div class="table-wrap">
             <table id="longestBooksTable">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;">#</th>
-                        <th id="thLongestTitle">Title</th>
-                        <th id="thLongestAuthor">Author</th>
-                        <th id="thLongestPages" style="width: 150px;">Pages</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th id="thLongestTitle">Title</th>
+                  <th id="thLongestAuthor">Author</th>
+                  <th id="thLongestPages">Pages</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
             </table>
+          </div>
         </div>
 
-        <div class="card full-width">
-            <h2 id="lblSpotlight">⭐ Random Selection of Your 5-Star Books</h2>
+        <div class="card full">
+          <h2 id="lblSpotlight">Random Selection of Your 5-Star Books</h2>
+          <div class="table-wrap">
             <table id="favoritesTable">
-                <thead><tr><th id="thTitle">Title</th><th id="thAuthorFav">Author</th><th id="thPubYear">Publication Year</th></tr></thead>
-                <tbody></tbody>
+              <thead><tr><th id="thTitle">Title</th><th id="thAuthorFav">Author</th><th id="thPubYear">Publication year</th></tr></thead>
+              <tbody></tbody>
             </table>
+          </div>
         </div>
-    </div>
+      </section>
 
-    <div id="placeholder" class="card">
-        <p id="placeholderText" class="placeholder-text">Click on the button above and select your library export file to instantly view your stats.</p>
-    </div>
+      <section id="placeholder" class="panel placeholder">
+        <p id="placeholderText">Load your Goodreads export to unlock the dashboard.</p>
+      </section>
+    </main>
+  </div>
 
-    <script>
-        const langs = {
-            en: {
-                mainTitle: "📚 My Reading Stats",
-                subtitle: "Upload your Goodreads export file to instantly generate your personalized literary dashboard.",
-                btnUpload: "🔄 Load Goodreads CSV",
-                placeholderText: "Click on the button above and select your library export file to instantly view your stats.",
-                lblPagesTimeline: "📈 Pages Read Per Year",
-                lblBooksTimeline: "📊 Books Read Per Year",
-                lblDecadeChart: "🏆 Decade Leaderboard (by average rating)",
-                lblStarChart: "📊 Rating Distribution (stars)",
-                lblTopAuthorsBooks: "📚 Most Read Authors (by number of books)",
-                thAuthorBooks: "Author Name",
-                thBooksReg: "Registered Books",
-                lblTopAuthorsPages: "📖 Most Read Authors (by total pages read)",
-                thAuthorPages: "Author Name",
-                thTotalPages: "Total Pages Read",
-                lblHighestRatedAuthors: "✍️ Your Highest Rated Authors (min. 7 books)",
-                thAuthorRated: "Author Name",
-                thAvgRating: "Avg Rating",
-                thBooksRead: "Books Read",
-                lblShelvesTable: "🏷️ Best Custom Bookshelves (average rating)",
-                thShelfCat: "Shelf Category",
-                thAvgRatingShelf: "Avg Rating",
-                thBooksReadShelf: "Books Read",
-                lblHallOfFame: "🏆 Authors Hall of Fame (Bayesian Consistency Index - min. 7 books)",
-                lblHallOfFameDesc: "Calculated using the IMDb Top 250 ranking algorithm. It applies a weighted average that combines your average rating for each author with the number of their works you've read, giving more weight to authors with a larger volume of highly-rated books.",
-                thPos: "Pos.",
-                thBayesAuthor: "Author Name",
-                thWeightedScore: "Weighted Index Score",
-                thRealAvg: "Real Avg Rating",
-                thBayesBooks: "Books Read",
-                lblLongestBooks: "📖 Top 10 Longest Books",
-                thLongestTitle: "Title",
-                thLongestAuthor: "Author",
-                thLongestPages: "Pages",
-                lblSpotlight: "⭐ Random Selection of Your 5-Star Books",
-                thTitle: "Title",
-                thAuthorFav: "Author",
-                thPubYear: "Publication Year",
-                dsPages: "Total pages read",
-                dsBooks: "Books read",
-                dsAvgRating: "Average rating",
-                dsBooksCount: "Number of books",
-                booksSuffix: "books",
-                pagesSuffix: "pages",
-                notSpecified: "Not specified",
-                starsLabel: "stars",
-                starLabelSingle: "star",
-                points: "pts",
-                errNoFile: "Error: No file loaded.",
-                errHeaders: "Error: Columns 'Title', 'Author' or 'My Rating' not found in the CSV file. Please make sure you are loading the correct Goodreads export."
-            },
-            it: {
-                mainTitle: "📚 Le mie statistiche di lettura",
-                subtitle: "Carica il tuo file per generare istantaneamente la tua dashboard letteraria personalizzata.",
-                btnUpload: "🔄 Carica CSV di Goodreads",
-                placeholderText: "Fai clic sul pulsante in alto e seleziona il tuo file di esportazione della libreria per visualizzare istantaneamente le metriche.",
-                lblPagesTimeline: "📈 Pagine lette per anno",
-                lblBooksTimeline: "📊 Libri letti per anno",
-                lblDecadeChart: "🏆 Classifica dei decenni (in base alla media voti)",
-                lblStarChart: "📊 Distribuzione delle valutazioni (stelle)",
-                lblTopAuthorsBooks: "📚 Autori più letti (per numero di libri)",
-                thAuthorBooks: "Nome autore",
-                thBooksReg: "Libri registrati",
-                lblTopAuthorsPages: "📖 Autori più letti (per totale pagine lette)",
-                thAuthorPages: "Nome autore",
-                thTotalPages: "Totale pagine lette",
-                lblHighestRatedAuthors: "✍️ I tuoi autori più votati (min. 7 libri letti)",
-                thAuthorRated: "Nome autore",
-                thAvgRating: "Media voti",
-                thBooksRead: "Libri letti",
-                lblShelvesTable: "🏷️ Migliori scaffali personalizzati (media voti)",
-                thShelfCat: "Categoria scaffale (shelf)",
-                thAvgRatingShelf: "Media voti",
-                thBooksReadShelf: "Libri letti",
-                lblHallOfFame: "🏆 Hall of fame degli autori (indice di consistenza bayesiana - min. 7 libri letti)",
-                lblHallOfFameDesc: "Calcolato utilizzando l'algoritmo di classificazione della top 250 di IMDb. Applica una media ponderata che combina la tua valutazione media per ciascun autore con il numero di sue opere lette, attribuendo maggiore peso agli autori che presentano più titoli valutati positivamente rispetto a quelli con poche letture ma medie elevate.",
-                thPos: "Pos.",
-                thBayesAuthor: "Nome autore",
-                thWeightedScore: "Punteggio indice pesato",
-                thRealAvg: "Media voti reale",
-                thBayesBooks: "Libri letti",
-                lblLongestBooks: "📖 I 10 libri più lunghi",
-                thLongestTitle: "Titolo",
-                thLongestAuthor: "Autore",
-                thLongestPages: "Pagine",
-                lblSpotlight: "⭐ Selezione casuale dei tuoi libri a 5 stelle",
-                thTitle: "Titolo",
-                thAuthorFav: "Autore",
-                thPubYear: "Anno di pubblicazione",
-                dsPages: "Pagine lette totali",
-                dsBooks: "Libri letti",
-                dsAvgRating: "Valutazione media",
-                dsBooksCount: "Numero di libri",
-                booksSuffix: "libri",
-                pagesSuffix: "pagine",
-                notSpecified: "Non specificato",
-                starsLabel: "stelle",
-                starLabelSingle: "stella",
-                points: "pti",
-                errNoFile: "Errore: Nessun file caricato.",
-                errHeaders: "Errore: Colonne 'Title', 'Author' o 'My Rating' non trovate nel file CSV. Assicurati di caricare il file esportato originale di Goodreads."
-            }
-        };
+  <script>
+    const langs = {
+      en: {
+        eyebrow: "Goodreads CSV dashboard",
+        mainTitle: "BookStats",
+        subtitle: "Upload your Goodreads export to turn your reading history into a cleaner, richer personal dashboard.",
+        guideTitle: "How it works",
+        btnUpload: "Load Goodreads CSV",
+        placeholderText: "Load your Goodreads export to unlock the dashboard.",
+        calloutTitle: "A cleaner reading portrait",
+        calloutText: "You now get KPI cards, annual trends, decade ranking, shelf quality, longest books, favorites, and a quick personal profile panel.",
+        preview1Label: "Best year",
+        preview2Label: "Reading streak",
+        preview3Label: "Top shelf",
+        preview4Label: "Longest book",
+        kpiBooksLabel: "Books logged",
+        kpiBooksNote: "Across your imported library",
+        kpiPagesLabel: "Pages tracked",
+        kpiPagesNote: "Based on page counts in the CSV",
+        kpiAvgLabel: "Average rating",
+        kpiAvgNote: "Only books with a rating",
+        kpiBestYearLabel: "Best year",
+        kpiBestYearNote: "Highest yearly average with at least 15 rated books",
+	kpiAuthorsLabel: "Distinct authors",
+	kpiAuthorsNote: "Approximate — based on exact name matches",
+        lblPagesTimeline: "Pages Read Per Year",
+        lblBooksTimeline: "Books Read Per Year",
+        lblDecadeChart: "Decade Leaderboard (by average rating)",
+        lblStarChart: "Rating Distribution",
+        lblProfile: "Reading profile",
+        profile1Label: "Most active year",
+        profile2Label: "Longest yearly streak",
+        profile3Label: "Most used shelf",
+        profile4Label: "5-star books",
+        lblTopAuthorsBooks: "Most Read Authors (by number of books)",
+        thAuthorBooks: "Author",
+        thBooksReg: "Books",
+        lblTopAuthorsPages: "Most Read Authors (by total pages)",
+        thAuthorPages: "Author",
+        thTotalPages: "Pages",
+        lblHighestRatedAuthors: "Your Highest Rated Authors (min. 7 books)",
+        thAuthorRated: "Author",
+        thAvgRating: "Avg rating",
+        thBooksRead: "Books read",
+        lblShelvesTable: "Best Custom Bookshelves (average rating)",
+        thShelfCat: "Shelf",
+        thAvgRatingShelf: "Avg rating",
+        thBooksReadShelf: "Books read",
+        lblMostUsedShelves: "Most Used Bookshelves",
+        thMostUsedShelf: "Shelf",
+        thMostUsedCount: "Books",
+        lblBestYears: "Best Reading Years",
+        thYear: "Year",
+        thYearAvg: "Avg rating",
+        thYearBooks: "Rated books",
+        lblHallOfFame: "Authors Hall of Fame (Bayesian Consistency Index - min. 7 books)",
+        lblHallOfFameDesc: "Weighted with a Bayesian score inspired by ranking systems that combine average rating and reading volume.",
+        thPos: "Pos.",
+        thBayesAuthor: "Author",
+        thWeightedScore: "Weighted score",
+        thRealAvg: "Real avg",
+        thBayesBooks: "Books",
+        lblLongestBooks: "Top 10 Longest Books",
+        thLongestTitle: "Title",
+        thLongestAuthor: "Author",
+        thLongestPages: "Pages",
+        lblSpotlight: "Random Selection of Your 5-Star Books",
+        thTitle: "Title",
+        thAuthorFav: "Author",
+        thPubYear: "Publication year",
+        dsPages: "Total pages read",
+        dsBooks: "Books read",
+        dsAvgRating: "Average rating",
+        dsBooksCount: "Number of books",
+        booksSuffix: "books",
+        pagesSuffix: "pages",
+        notSpecified: "Not specified",
+        starsLabel: "stars",
+        starLabelSingle: "star",
+        points: "pts",
+        errHeaders: "Error: required Goodreads columns were not found. Please load the original export CSV.",
+        errParse: "JavaScript error while parsing file:",
+        yearSuffix: "rated",
+        activeYearLabel: "books",
+        streakSuffix: "years",
+        noData: "—"
+      },
+      it: {
+        eyebrow: "Dashboard da CSV Goodreads",
+        mainTitle: "BookStats",
+        subtitle: "Carica l'export di Goodreads per trasformare la tua cronologia di lettura in una dashboard più pulita e ricca.",
+        guideTitle: "Come funziona",
+        btnUpload: "Carica CSV di Goodreads",
+        placeholderText: "Carica l'export di Goodreads per sbloccare la dashboard.",
+        calloutTitle: "Un ritratto di lettura più pulito",
+        calloutText: "Ora hai KPI iniziali, trend annuali, classifica dei decenni, qualità degli shelf, libri più lunghi, preferiti e un pannello profilo rapido.",
+        preview1Label: "Anno migliore",
+        preview2Label: "Striscia di lettura",
+        preview3Label: "Shelf top",
+        preview4Label: "Libro più lungo",
+        kpiBooksLabel: "Libri registrati",
+        kpiBooksNote: "Su tutta la libreria importata",
+        kpiPagesLabel: "Pagine tracciate",
+        kpiPagesNote: "In base ai conteggi presenti nel CSV",
+        kpiAvgLabel: "Valutazione media",
+        kpiAvgNote: "Solo libri con voto",
+        kpiBestYearLabel: "Anno migliore",
+        kpiBestYearNote: "Migliore media annuale con almeno 15 libri votati",
+	kpiAuthorsLabel: "Autori distinti",
+	kpiAuthorsNote: "Stima approssimativa — basata su corrispondenza esatta dei nomi",
+        lblPagesTimeline: "Pagine lette per anno",
+        lblBooksTimeline: "Libri letti per anno",
+        lblDecadeChart: "Classifica dei decenni (per media voti)",
+        lblStarChart: "Distribuzione delle valutazioni",
+        lblProfile: "Profilo di lettura",
+        profile1Label: "Anno più attivo",
+        profile2Label: "Striscia annuale più lunga",
+        profile3Label: "Shelf più usato",
+        profile4Label: "Libri da 5 stelle",
+        lblTopAuthorsBooks: "Autori più letti (per numero di libri)",
+        thAuthorBooks: "Autore",
+        thBooksReg: "Libri",
+        lblTopAuthorsPages: "Autori più letti (per totale pagine)",
+        thAuthorPages: "Autore",
+        thTotalPages: "Pagine",
+        lblHighestRatedAuthors: "I tuoi autori più votati (min. 7 libri)",
+        thAuthorRated: "Autore",
+        thAvgRating: "Media voti",
+        thBooksRead: "Libri letti",
+        lblShelvesTable: "Migliori shelf personalizzati (media voti)",
+        thShelfCat: "Shelf",
+        thAvgRatingShelf: "Media voti",
+        thBooksReadShelf: "Libri letti",
+        lblMostUsedShelves: "Shelf più usati",
+        thMostUsedShelf: "Shelf",
+        thMostUsedCount: "Libri",
+        lblBestYears: "Migliori anni di lettura",
+        thYear: "Anno",
+        thYearAvg: "Media voti",
+        thYearBooks: "Libri votati",
+        lblHallOfFame: "Hall of fame autori (indice bayesiano - min. 7 libri)",
+        lblHallOfFameDesc: "Punteggio pesato ispirato a sistemi di ranking che combinano media voti e volume di lettura.",
+        thPos: "Pos.",
+        thBayesAuthor: "Autore",
+        thWeightedScore: "Punteggio pesato",
+        thRealAvg: "Media reale",
+        thBayesBooks: "Libri",
+        lblLongestBooks: "I 10 libri più lunghi",
+        thLongestTitle: "Titolo",
+        thLongestAuthor: "Autore",
+        thLongestPages: "Pagine",
+        lblSpotlight: "Selezione casuale dei tuoi libri da 5 stelle",
+        thTitle: "Titolo",
+        thAuthorFav: "Autore",
+        thPubYear: "Anno pubblicazione",
+        dsPages: "Pagine lette totali",
+        dsBooks: "Libri letti",
+        dsAvgRating: "Valutazione media",
+        dsBooksCount: "Numero di libri",
+        booksSuffix: "libri",
+        pagesSuffix: "pagine",
+        notSpecified: "Non specificato",
+        starsLabel: "stelle",
+        starLabelSingle: "stella",
+        points: "pti",
+        errHeaders: "Errore: le colonne Goodreads richieste non sono state trovate. Carica il CSV originale dell'export.",
+        errParse: "Errore JavaScript durante il parsing del file:",
+        yearSuffix: "votati",
+        activeYearLabel: "libri",
+        streakSuffix: "anni",
+        noData: "—"
+      }
+    };
 
-        let currentLang = 'en';
-        let parsedBooks = [];
+    let currentLang = 'en';
+    let parsedBooks = [];
+    let charts = {};
+    let currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
 
-        function setLanguage(lang) {
-            currentLang = lang;
-            document.documentElement.lang = lang;
-            
-            const t = langs[lang];
-            document.getElementById('mainTitle').innerText = t.mainTitle;
-            document.getElementById('subtitle').innerText = t.subtitle;
-            document.getElementById('btnUpload').innerText = t.btnUpload;
-            document.getElementById('placeholderText').innerText = t.placeholderText;
-            document.getElementById('lblPagesTimeline').innerText = t.lblPagesTimeline;
-            document.getElementById('lblBooksTimeline').innerText = t.lblBooksTimeline;
-            document.getElementById('lblDecadeChart').innerText = t.lblDecadeChart;
-            document.getElementById('lblStarChart').innerText = t.lblStarChart;
-            document.getElementById('lblTopAuthorsBooks').innerText = t.lblTopAuthorsBooks;
-            document.getElementById('thAuthorBooks').innerText = t.thAuthorBooks;
-            document.getElementById('thBooksReg').innerText = t.thBooksReg;
-            document.getElementById('lblTopAuthorsPages').innerText = t.lblTopAuthorsPages;
-            document.getElementById('thAuthorPages').innerText = t.thAuthorPages;
-            document.getElementById('thTotalPages').innerText = t.thTotalPages;
-            document.getElementById('lblHighestRatedAuthors').innerText = t.lblHighestRatedAuthors;
-            document.getElementById('thAuthorRated').innerText = t.thAuthorRated;
-            document.getElementById('thAvgRating').innerText = t.thAvgRating;
-            document.getElementById('thBooksRead').innerText = t.thBooksRead;
-            document.getElementById('lblShelvesTable').innerText = t.lblShelvesTable;
-            document.getElementById('thShelfCat').innerText = t.thShelfCat;
-            document.getElementById('thAvgRatingShelf').innerText = t.thAvgRatingShelf;
-            document.getElementById('thBooksReadShelf').innerText = t.thBooksReadShelf;
-            document.getElementById('lblHallOfFame').innerText = t.lblHallOfFame;
-            document.getElementById('lblHallOfFameDesc').innerText = t.lblHallOfFameDesc;
-            document.getElementById('thPos').innerText = t.thPos;
-            document.getElementById('thBayesAuthor').innerText = t.thBayesAuthor;
-            document.getElementById('thWeightedScore').innerText = t.thWeightedScore;
-            document.getElementById('thRealAvg').innerText = t.thRealAvg;
-            document.getElementById('thBayesBooks').innerText = t.thBayesBooks;
-            document.getElementById('lblLongestBooks').innerText = t.lblLongestBooks;
-            document.getElementById('thLongestTitle').innerText = t.thLongestTitle;
-            document.getElementById('thLongestAuthor').innerText = t.thLongestAuthor;
-            document.getElementById('thLongestPages').innerText = t.thLongestPages;
-            document.getElementById('lblSpotlight').innerText = t.lblSpotlight;
-            document.getElementById('thTitle').innerText = t.thTitle;
-            document.getElementById('thAuthorFav').innerText = t.thAuthorFav;
-            document.getElementById('thPubYear').innerText = t.thPubYear;
+    function esc(s){return String(s ?? '').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+    function formatNum(n, digits = 0) {
+      const locale = currentLang === 'it' ? 'it-IT' : 'en-US';
+      return Number(n || 0).toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
+    function chartTextColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--muted').trim(); }
+    function chartGridColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--border').trim(); }
+    function chartAccent(){ return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); }
+    function chartAccent2(){ return getComputedStyle(document.documentElement).getPropertyValue('--accent-2').trim(); }
 
-            if (parsedBooks.length > 0) {
-                renderDashboard(parsedBooks);
-            }
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.documentElement.lang = lang;
+      const t = langs[lang];
+      [
+        'eyebrow','mainTitle','subtitle','guideTitle','btnUpload','placeholderText','calloutTitle','calloutText',
+        'preview1Label','preview2Label','preview3Label','preview4Label','kpiBooksLabel','kpiBooksNote','kpiPagesLabel','kpiPagesNote',
+        'kpiAvgLabel','kpiAvgNote','kpiBestYearLabel','kpiBestYearNote','kpiAuthorsLabel','kpiAuthorsNote','lblPagesTimeline','lblBooksTimeline','lblDecadeChart',
+        'lblStarChart','lblProfile','profile1Label','profile2Label','profile3Label','profile4Label','lblTopAuthorsBooks',
+        'thAuthorBooks','thBooksReg','lblTopAuthorsPages','thAuthorPages','thTotalPages','lblHighestRatedAuthors','thAuthorRated',
+        'thAvgRating','thBooksRead','lblShelvesTable','thShelfCat','thAvgRatingShelf','thBooksReadShelf','lblMostUsedShelves',
+        'thMostUsedShelf','thMostUsedCount','lblBestYears','thYear','thYearAvg','thYearBooks','lblHallOfFame','lblHallOfFameDesc',
+        'thPos','thBayesAuthor','thWeightedScore','thRealAvg','thBayesBooks','lblLongestBooks','thLongestTitle','thLongestAuthor',
+        'thLongestPages','lblSpotlight','thTitle','thAuthorFav','thPubYear'
+      ].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && t[id]) el.innerText = t[id];
+      });
+      if (parsedBooks.length) renderDashboard(parsedBooks);
+    }
+
+    document.getElementById('langSelect').addEventListener('change', e => setLanguage(e.target.value));
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      if (parsedBooks.length) renderDashboard(parsedBooks);
+    });
+
+    document.getElementById('csvFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const banner = document.getElementById('error-banner');
+        banner.style.display = 'none';
+        try {
+          parseCSV(evt.target.result);
+        } catch (err) {
+          banner.innerText = langs[currentLang].errParse + ' ' + err.message;
+          banner.style.display = 'block';
+          console.error(err);
         }
+      };
+      reader.readAsText(file, 'UTF-8');
+    });
 
-        document.getElementById('langSelect').addEventListener('change', e => {
-            setLanguage(e.target.value);
+    function parseCSV(text) {
+      const lines = [];
+      let row = [''];
+      let inQuotes = false;
+      const cleanText = text.trim();
+      const splitLines = cleanText.split('\n');
+      if (splitLines.length === 0) return;
+      const firstLine = splitLines[0];
+      const separator = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+
+      for (let i = 0; i < cleanText.length; i++) {
+        let c = cleanText[i];
+        let next = cleanText[i + 1];
+        if (c === '"') {
+          if (inQuotes && next === '"') { row[row.length - 1] += '"'; i++; }
+          else { inQuotes = !inQuotes; }
+        } else if (c === separator && !inQuotes) {
+          row.push('');
+        } else if ((c === '\r' || c === '\n') && !inQuotes) {
+          if (c === '\r' && next === '\n') i++;
+          lines.push(row);
+          row = [''];
+        } else {
+          row[row.length - 1] += c;
+        }
+      }
+      if (row.length > 1 || row[0] !== '') lines.push(row);
+      if (lines.length < 2) return;
+
+      const headers = lines[0].map(h => h.replace(/^\ufeff/, '').replace(/^"|"$/g, '').trim());
+      const titleIdx = headers.indexOf('Title');
+      const authorIdx = headers.indexOf('Author');
+      const ratingIdx = headers.indexOf('My Rating');
+      const pagesIdx = headers.indexOf('Number of Pages');
+      const shelvesIdx = headers.indexOf('Bookshelves');
+      const pubYearIdx = headers.indexOf('Original Publication Year');
+      const fallbackYearIdx = headers.indexOf('Year Published');
+      const dateReadIdx = headers.indexOf('Date Read');
+
+      if (titleIdx === -1 || authorIdx === -1 || ratingIdx === -1) {
+        const banner = document.getElementById('error-banner');
+        banner.innerText = langs[currentLang].errHeaders;
+        banner.style.display = 'block';
+        console.error('Missing headers. Detected headers were:', headers);
+        return;
+      }
+
+      const books = [];
+      for (let i = 1; i < lines.length; i++) {
+        const data = lines[i];
+        if (data.length <= Math.max(titleIdx, authorIdx, ratingIdx)) continue;
+        const rawPages = pagesIdx >= 0 ? data[pagesIdx] : '';
+        const rawPubYear = pubYearIdx >= 0 ? data[pubYearIdx] : '';
+        const rawFallbackYear = fallbackYearIdx >= 0 ? data[fallbackYearIdx] : '';
+        const rawDateRead = dateReadIdx >= 0 ? data[dateReadIdx] : '';
+        const rawShelves = shelvesIdx >= 0 ? data[shelvesIdx] : '';
+        const rating = parseFloat(data[ratingIdx]) || 0;
+        const pages = parseFloat(rawPages) || 0;
+        const year = parseFloat(rawPubYear) || parseFloat(rawFallbackYear) || null;
+        let readYear = null;
+        if (rawDateRead && typeof rawDateRead === 'string') {
+          const match = rawDateRead.match(/(\d{4})/);
+          if (match) readYear = parseInt(match[1], 10);
+        }
+        books.push({
+          title: data[titleIdx] || '',
+          author: data[authorIdx] || '',
+          rating,
+          pages,
+          shelves: rawShelves ? rawShelves.split(',').map(s => s.trim()).filter(Boolean) : [],
+          year,
+          readYear
         });
+      }
+      parsedBooks = books;
+      renderDashboard(books);
+    }
 
-        document.getElementById('csvFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+    function destroyCharts() {
+      Object.keys(charts).forEach(key => {
+        if (charts[key]) charts[key].destroy();
+      });
+      charts = {};
+    }
 
-            const reader = new FileReader();
-            reader.onload = function(evt) { 
-                document.getElementById('error-banner').style.display = 'none';
-                parseCSV(evt.target.result); 
-            };
-            reader.readAsText(file, "UTF-8");
+    function baseChartOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: chartTextColor() } } },
+        scales: {
+          x: { ticks: { color: chartTextColor() }, grid: { color: chartGridColor() } },
+          y: { ticks: { color: chartTextColor() }, grid: { color: chartGridColor() } }
+        }
+      };
+    }
+
+    function consecutiveStreak(years) {
+      if (!years.length) return 0;
+      const sorted = [...new Set(years)].sort((a,b) => a-b);
+      let best = 1, current = 1;
+      for (let i = 1; i < sorted.length; i++) {
+        if (sorted[i] === sorted[i-1] + 1) current++;
+        else current = 1;
+        if (current > best) best = current;
+      }
+      return best;
+    }
+
+    function renderDashboard(books) {
+      const t = langs[currentLang];
+      const locale = currentLang === 'it' ? 'it-IT' : 'en-US';
+      document.getElementById('placeholder').style.display = 'none';
+      document.getElementById('dashboardContent').style.display = 'grid';
+      document.getElementById('kpiGrid').style.display = 'grid';
+
+      let totalBooks = books.length;
+      let totalPages = 0;
+      let totalGlobalRating = 0;
+      let totalGlobalCount = 0;
+      const timelineData = {};
+      const ratedYearData = {};
+      const decadeGroups = {};
+      const shelfGroups = {};
+      const shelfUsage = {};
+      const authorGroups = {};
+      const authorCountsTotal = {};
+      const authorPagesTotal = {};
+      const stars = { 5:0, 4:0, 3:0, 2:0, 1:0 };
+
+      books.forEach(b => {
+        totalPages += b.pages || 0;
+        if (b.rating > 0) {
+          totalGlobalRating += b.rating;
+          totalGlobalCount += 1;
+          if (stars[b.rating] !== undefined) stars[b.rating] += 1;
+        }
+        if (b.readYear && b.readYear >= 1900) {
+          if (!timelineData[b.readYear]) timelineData[b.readYear] = { books: 0, pages: 0 };
+          timelineData[b.readYear].books += 1;
+          timelineData[b.readYear].pages += b.pages || 0;
+          if (b.rating > 0) {
+            if (!ratedYearData[b.readYear]) ratedYearData[b.readYear] = { count: 0, total: 0 };
+            ratedYearData[b.readYear].count += 1;
+            ratedYearData[b.readYear].total += b.rating;
+          }
+        }
+        if (b.year && b.rating > 0) {
+          const decade = Math.floor(b.year / 10) * 10;
+          const label = decade + 's';
+          if (!decadeGroups[label]) decadeGroups[label] = { totalRating: 0, count: 0 };
+          decadeGroups[label].totalRating += b.rating;
+          decadeGroups[label].count += 1;
+        }
+        if (b.author) {
+          authorCountsTotal[b.author] = (authorCountsTotal[b.author] || 0) + 1;
+          authorPagesTotal[b.author] = (authorPagesTotal[b.author] || 0) + (b.pages || 0);
+          if (b.rating > 0) {
+            if (!authorGroups[b.author]) authorGroups[b.author] = { totalRating: 0, count: 0 };
+            authorGroups[b.author].totalRating += b.rating;
+            authorGroups[b.author].count += 1;
+          }
+        }
+        b.shelves.forEach(shelf => {
+          if (!shelf) return;
+          if (!['to-read', 'currently-reading', 'read'].includes(shelf)) {
+            shelfUsage[shelf] = (shelfUsage[shelf] || 0) + 1;
+            if (b.rating > 0) {
+              if (!shelfGroups[shelf]) shelfGroups[shelf] = { totalRating: 0, count: 0 };
+              shelfGroups[shelf].totalRating += b.rating;
+              shelfGroups[shelf].count += 1;
+            }
+          }
         });
+      });
 
-        function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+      const distinctAuthorsCount = Object.keys(authorCountsTotal).length;
+      const timelineYears = Object.keys(timelineData).sort((a,b) => a-b);
+      const globalMeanRating = totalGlobalCount > 0 ? totalGlobalRating / totalGlobalCount : 0;
+      const bestYearsSorted = Object.keys(ratedYearData)
+        .map(y => ({ year: y, avg: ratedYearData[y].total / ratedYearData[y].count, count: ratedYearData[y].count }))
+        .filter(y => y.count >= 15)
+        .sort((a,b) => b.avg - a.avg || b.count - a.count)
+        .slice(0, 7);
+      const mostActiveYear = timelineYears
+        .map(y => ({ year: y, books: timelineData[y].books }))
+        .sort((a,b) => b.books - a.books)[0] || null;
+      const bestYear = bestYearsSorted[0] || null;
+      const streak = consecutiveStreak(timelineYears.map(Number));
+      const topShelfUsage = Object.keys(shelfUsage)
+        .map(name => ({ name, count: shelfUsage[name] }))
+        .sort((a,b) => b.count - a.count)[0] || null;
+      const shelvesSorted = Object.keys(shelfGroups)
+        .map(name => ({ name, avg: shelfGroups[name].totalRating / shelfGroups[name].count, count: shelfGroups[name].count }))
+        .filter(s => s.count >= 2)
+        .sort((a,b) => b.avg - a.avg || b.count - a.count)
+        .slice(0, 8);
+      const mostUsedShelvesSorted = Object.keys(shelfUsage)
+        .map(name => ({ name, count: shelfUsage[name] }))
+        .sort((a,b) => b.count - a.count)
+        .slice(0, 8);
+      const authorsBooksSorted = Object.keys(authorCountsTotal)
+        .map(name => ({ name, count: authorCountsTotal[name] }))
+        .sort((a,b) => b.count - a.count)
+        .slice(0, 8);
+      const authorsPagesSorted = Object.keys(authorPagesTotal)
+        .map(name => ({ name, pages: authorPagesTotal[name] }))
+        .sort((a,b) => b.pages - a.pages)
+        .slice(0, 8);
+      const authorsSorted = Object.keys(authorGroups)
+        .map(name => ({ name, avg: authorGroups[name].totalRating / authorGroups[name].count, count: authorGroups[name].count }))
+        .filter(a => a.count >= 7)
+        .sort((a,b) => b.avg - a.avg || b.count - a.count)
+        .slice(0, 8);
+      const bayesianAuthors = Object.keys(authorGroups)
+        .map(name => {
+          const v = authorGroups[name].count;
+          const R = authorGroups[name].totalRating / v;
+          const m = 7;
+          const C = globalMeanRating || 3.5;
+          const score = (v / (v + m) * R) + (m / (v + m) * C);
+          return { name, score, avg: R, count: v };
+        })
+        .filter(a => a.count >= 7)
+        .sort((a,b) => b.score - a.score)
+        .slice(0, 10);
+      const decadesSorted = Object.keys(decadeGroups)
+        .map(label => ({ label, avg: decadeGroups[label].totalRating / decadeGroups[label].count, count: decadeGroups[label].count }))
+        .sort((a,b) => b.avg - a.avg)
+        .slice(0, 10);
+      const minDecadeAvg = decadesSorted.length ? Math.max(1, Math.floor(Math.min(...decadesSorted.map(d => d.avg)) - 0.5)) : 1;
+      const longestBooksSorted = [...books].filter(b => b.pages > 0 && b.title).sort((a,b) => b.pages - a.pages).slice(0, 10);
+      const perfectBooks = books.filter(b => b.rating === 5);
+      for (let i = perfectBooks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [perfectBooks[i], perfectBooks[j]] = [perfectBooks[j], perfectBooks[i]];
+      }
 
-        function parseCSV(text) {
-            const lines = [];
-            let row = [""];
-            let inQuotes = false;
+      document.getElementById('kpiBooks').innerText = formatNum(totalBooks);
+      document.getElementById('kpiPages').innerText = formatNum(totalPages);
+      document.getElementById('kpiAvg').innerText = totalGlobalCount ? formatNum(globalMeanRating, 2) + ' / 5' : t.noData;
+      document.getElementById('kpiBestYear').innerText = bestYear ? `${bestYear.year}` : t.noData;
+      document.getElementById('kpiAuthors').innerText = formatNum(distinctAuthorsCount);
 
-            const cleanText = text.trim();
-            const splitLines = cleanText.split('\n');
-            if (splitLines.length === 0) return;
-            
-            const firstLine = splitLines[0];
-            const separator = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+      document.getElementById('preview1Value').innerText = bestYear ? `${bestYear.year}` : t.noData;
+      document.getElementById('preview2Value').innerText = streak ? `${formatNum(streak)} ${t.streakSuffix}` : t.noData;
+      document.getElementById('preview3Value').innerText = topShelfUsage ? esc(topShelfUsage.name) : t.noData;
+      document.getElementById('preview4Value').innerText = longestBooksSorted[0] ? `${formatNum(longestBooksSorted[0].pages)} ${t.pagesSuffix}` : t.noData;
 
-            for (let i = 0; i < cleanText.length; i++) {
-                let c = cleanText[i];
-                let next = cleanText[i+1];
-                if (c === '"') {
-                    if (inQuotes && next === '"') { row[row.length - 1] += '"'; i++; }
-                    else { inQuotes = !inQuotes; }
-                } else if (c === separator && !inQuotes) {
-                    row.push('');
-                } else if ((c === '\r' || c === '\n') && !inQuotes) {
-                    if (c === '\r' && next === '\n') { i++; }
-                    lines.push(row);
-                    row = [''];
-                } else {
-                    row[row.length - 1] += c;
-                }
-            }
-            if (row.length > 1 || row[0] !== '') lines.push(row);
-            if (lines.length < 2) return;
+      document.getElementById('profile1Value').innerText = mostActiveYear ? `${mostActiveYear.year} · ${formatNum(mostActiveYear.books)} ${t.activeYearLabel}` : t.noData;
+      document.getElementById('profile2Value').innerText = streak ? `${formatNum(streak)} ${t.streakSuffix}` : t.noData;
+      document.getElementById('profile3Value').innerText = topShelfUsage ? `${topShelfUsage.name} · ${formatNum(topShelfUsage.count)}` : t.noData;
+      document.getElementById('profile4Value').innerText = `${formatNum(perfectBooks.length)}`;
 
-            const headers = lines[0].map(h => h.replace(/^\ufeff/, '').replace(/^"|"$/g, '').trim());
-            
-            const titleIdx = headers.indexOf('Title');
-            const authorIdx = headers.indexOf('Author');
-            const ratingIdx = headers.indexOf('My Rating');
-            const pagesIdx = headers.indexOf('Number of Pages');
-            const shelvesIdx = headers.indexOf('Bookshelves');
-            const pubYearIdx = headers.indexOf('Original Publication Year');
-            const fallbackYearIdx = headers.indexOf('Year Published');
-            const dateReadIdx = headers.indexOf('Date Read');
+      destroyCharts();
+      const lineOpts = baseChartOptions();
+      const barOpts = baseChartOptions();
+      charts.pagesTimeline = new Chart(document.getElementById('pagesTimelineChart'), {
+        type: 'line',
+        data: {
+          labels: timelineYears,
+          datasets: [{
+            label: t.dsPages,
+            data: timelineYears.map(y => timelineData[y].pages),
+            borderColor: chartAccent(),
+            backgroundColor: 'rgba(245, 158, 11, 0.12)',
+            fill: true,
+            tension: 0.32,
+            pointRadius: 3
+          }]
+        },
+        options: lineOpts
+      });
+      charts.booksTimeline = new Chart(document.getElementById('booksTimelineChart'), {
+        type: 'bar',
+        data: {
+          labels: timelineYears,
+          datasets: [{
+            label: t.dsBooks,
+            data: timelineYears.map(y => timelineData[y].books),
+            backgroundColor: chartAccent(),
+            borderRadius: 8
+          }]
+        },
+        options: barOpts
+      });
+      const decadeOpts = baseChartOptions();
+      decadeOpts.indexAxis = 'y';
+      decadeOpts.scales.x.min = minDecadeAvg;
+      decadeOpts.scales.x.max = 5;
+      charts.decade = new Chart(document.getElementById('decadeChart'), {
+        type: 'bar',
+        data: {
+          labels: decadesSorted.map(d => d.label),
+          datasets: [{
+            label: t.dsAvgRating,
+            data: decadesSorted.map(d => Number(d.avg.toFixed(2))),
+            backgroundColor: chartAccent2(),
+            borderRadius: 8
+          }]
+        },
+        options: decadeOpts
+      });
+      charts.star = new Chart(document.getElementById('starChart'), {
+        type: 'bar',
+        data: {
+          labels: [
+            `5 ${t.starsLabel}`,
+            `4 ${t.starsLabel}`,
+            `3 ${t.starsLabel}`,
+            `2 ${t.starsLabel}`,
+            `1 ${currentLang === 'it' ? t.starLabelSingle : t.starsLabel}`
+          ],
+          datasets: [{
+            label: t.dsBooksCount,
+            data: [stars[5], stars[4], stars[3], stars[2], stars[1]],
+            backgroundColor: chartAccent2(),
+            borderRadius: 8
+          }]
+        },
+        options: baseChartOptions()
+      });
 
-            if (titleIdx === -1 || authorIdx === -1 || ratingIdx === -1) {
-                const banner = document.getElementById('error-banner');
-                banner.innerText = langs[currentLang].errHeaders;
-                banner.style.display = 'block';
-                console.error("Missing headers. Detected headers were: ", headers);
-                return;
-            }
+      const renderRows = (selector, rows) => {
+        const tbody = document.querySelector(selector);
+        tbody.innerHTML = rows.join('');
+      };
 
-            const books = [];
-            for(let i=1; i<lines.length; i++) {
-                const data = lines[i];
-                if (data.length <= Math.max(titleIdx, authorIdx, ratingIdx)) continue;
-                
-                let rating = parseFloat(data[ratingIdx]) || 0;
-                let pages = parseFloat(data[pagesIdx]) || 0;
-                let year = parseFloat(data[pubYearIdx]) || parseFloat(data[fallbackYearIdx]) || null;
-                
-                let readYear = null;
-                if (data[dateReadIdx]) {
-                    const match = data[dateReadIdx].match(/(\d{4})/);
-                    if (match) readYear = parseInt(match[1]);
-                }
-                
-                books.push({
-                    title: data[titleIdx],
-                    author: data[authorIdx],
-                    rating: rating,
-                    pages: pages,
-                    shelves: data[shelvesIdx] ? data[shelvesIdx].split(',').map(s => s.trim()) : [],
-                    year: year,
-                    readYear: readYear
-                });
-            }
+      renderRows('#volumeBooksTable tbody',
+        authorsBooksSorted.map(a =>
+          `<tr><td><span class="badge">${esc(a.name)}</span></td><td><strong>${formatNum(a.count)}</strong> ${t.booksSuffix}</td></tr>`
+        )
+      );
+      renderRows('#volumePagesTable tbody',
+        authorsPagesSorted.map(a =>
+          `<tr><td><span class="badge">${esc(a.name)}</span></td><td><strong>${formatNum(a.pages)}</strong> ${t.pagesSuffix}</td></tr>`
+        )
+      );
+      renderRows('#authorsTable tbody',
+        authorsSorted.map(a =>
+          `<tr><td><span class="badge">${esc(a.name)}</span></td><td><strong>${formatNum(a.avg,2)}</strong> / 5</td><td>${formatNum(a.count)} ${t.booksSuffix}</td></tr>`
+        )
+      );
+      renderRows('#shelvesTable tbody',
+        shelvesSorted.map(s =>
+          `<tr><td><span class="badge">${esc(s.name)}</span></td><td><strong>${formatNum(s.avg,2)}</strong> / 5</td><td>${formatNum(s.count)} ${t.booksSuffix}</td></tr>`
+        )
+      );
+      renderRows('#mostUsedShelvesTable tbody',
+        mostUsedShelvesSorted.map(s =>
+          `<tr><td><span class="badge">${esc(s.name)}</span></td><td><strong>${formatNum(s.count)}</strong> ${t.booksSuffix}</td></tr>`
+        )
+      );
+      renderRows('#bestYearsTable tbody',
+        bestYearsSorted.map(y =>
+          `<tr><td><strong>${y.year}</strong></td><td>${formatNum(y.avg,2)} / 5</td><td>${formatNum(y.count)} ${t.yearSuffix}</td></tr>`
+        )
+      );
+      renderRows('#bayesAuthorsTable tbody',
+        bayesianAuthors.map((a,i) =>
+          `<tr><td><strong>#${i+1}</strong></td><td><span class="badge">${esc(a.name)}</span></td><td><strong>${formatNum(a.score,3)} ${t.points}</strong></td><td>${formatNum(a.avg,2)}</td><td>${formatNum(a.count)}</td></tr>`
+        )
+      );
+      renderRows('#longestBooksTable tbody',
+        longestBooksSorted.map((b,i) =>
+          `<tr><td><strong>#${i+1}</strong></td><td><strong>${esc(b.title)}</strong></td><td><span class="badge">${esc(b.author)}</span></td><td><strong>${formatNum(b.pages)}</strong> ${t.pagesSuffix}</td></tr>`
+        )
+      );
+      renderRows('#favoritesTable tbody',
+        perfectBooks.slice(0, 7).map(b =>
+          `<tr><td>${esc(b.title)}</td><td><span class="badge">${esc(b.author)}</span></td><td>${b.year || t.notSpecified}</td></tr>`
+        )
+      );
+    }
 
-            parsedBooks = books;
-            renderDashboard(books);
-        }
-
-        let charts = {};
-
-        function renderDashboard(books) {
-            document.getElementById('placeholder').style.display = 'none';
-            document.getElementById('instructions').style.display = 'none';
-            document.getElementById('dashboardContent').style.display = 'grid';
-
-            const t = langs[currentLang];
-            const localeStr = currentLang === 'it' ? 'it-IT' : 'en-US';
-
-            let totalGlobalRating = 0;
-            let totalGlobalCount = 0;
-
-            const timelineData = {};
-            books.forEach(b => {
-                if (b.rating > 0) {
-                    totalGlobalRating += b.rating;
-                    totalGlobalCount += 1;
-                }
-                if (b.readYear && b.readYear >= 1990) {
-                    if (!timelineData[b.readYear]) timelineData[b.readYear] = { books: 0, pages: 0 };
-                    timelineData[b.readYear].books += 1;
-                    timelineData[b.readYear].pages += b.pages;
-                }
-            });
-            const timelineYears = Object.keys(timelineData).sort();
-            const globalMeanRating = totalGlobalCount > 0 ? (totalGlobalRating / totalGlobalCount) : 3.5;
-
-            const decadeGroups = {};
-            books.forEach(b => {
-                if (b.year && b.rating > 0) {
-                    const decade = Math.floor(b.year / 10) * 10;
-                    const label = decade + 's';
-                    if (!decadeGroups[label]) decadeGroups[label] = { totalRating: 0, count: 0 };
-                    decadeGroups[label].totalRating += b.rating;
-                    decadeGroups[label].count += 1;
-                }
-            });
-            const decadesSorted = Object.keys(decadeGroups).map(lbl => ({
-                label: lbl, avg: decadeGroups[lbl].totalRating / decadeGroups[lbl].count
-            })).sort((a, b) => b.avg - a.avg).slice(0, 10);
-
-            const minDecadeAvg = Math.max(1, Math.floor(Math.min(...decadesSorted.map(d => d.avg)) - 0.5));
-
-            const stars = { 5:0, 4:0, 3:0, 2:0, 1:0 };
-            books.forEach(b => { if (b.rating > 0) stars[b.rating] += 1; });
-
-            const shelfGroups = {};
-            books.forEach(b => {
-                if (b.rating > 0) {
-                    b.shelves.forEach(shelf => {
-                        if (shelf && !['to-read', 'currently-reading', 'read'].includes(shelf)) {
-                            if (!shelfGroups[shelf]) shelfGroups[shelf] = { totalRating: 0, count: 0 };
-                            shelfGroups[shelf].totalRating += b.rating;
-                            shelfGroups[shelf].count += 1;
-                        }
-                    });
-                }
-            });
-            const shelvesSorted = Object.keys(shelfGroups).map(s => ({
-                name: s, avg: shelfGroups[s].totalRating / shelfGroups[s].count, count: shelfGroups[s].count
-            })).sort((a, b) => b.avg - a.avg).slice(0, 5);
-
-            const authorGroups = {};
-            const authorCountsTotal = {};
-            const authorPagesTotal = {};
-            
-            books.forEach(b => {
-                if (b.author) {
-                    authorCountsTotal[b.author] = (authorCountsTotal[b.author] || 0) + 1;
-                    authorPagesTotal[b.author] = (authorPagesTotal[b.author] || 0) + b.pages;
-                    if (b.rating > 0) {
-                        if (!authorGroups[b.author]) authorGroups[b.author] = { totalRating: 0, count: 0 };
-                        authorGroups[b.author].totalRating += b.rating;
-                        authorGroups[b.author].count += 1;
-                    }
-                }
-            });
-
-            const authorsBooksSorted = Object.keys(authorCountsTotal).map(a => ({ name: a, count: authorCountsTotal[a] })).sort((a, b) => b.count - a.count).slice(0, 5);
-            const authorsPagesSorted = Object.keys(authorPagesTotal).map(a => ({ name: a, pages: authorPagesTotal[a] })).sort((a, b) => b.pages - a.pages).slice(0, 5);
-            
-            const authorsSorted = Object.keys(authorGroups).map(a => ({
-                name: a, avg: authorGroups[a].totalRating / authorGroups[a].count, count: authorGroups[a].count
-            })).filter(a => a.count >= 7).sort((a, b) => b.avg - a.avg).slice(0, 5);
-
-            const minBooksParam = 7;
-            const bayesianAuthors = Object.keys(authorGroups).map(a => {
-                const v = authorGroups[a].count;
-                const R = authorGroups[a].totalRating / v;
-                const m = minBooksParam;
-                const C = globalMeanRating;
-                
-                const score = (v / (v + m) * R) + (m / (v + m) * C);
-                
-                return { name: a, score: score, avg: R, count: v };
-            })
-            .filter(a => a.count >= 7)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 10);
-
-            // Calcolo e sorting per i 10 libri più lunghi
-            const longestBooksSorted = [...books]
-                .filter(b => b.pages > 0 && b.title)
-                .sort((a, b) => b.pages - a.pages)
-                .slice(0, 10);
-
-            Object.keys(charts).forEach(key => charts[key].destroy());
-
-            // 1. Pages Timeline Chart
-            charts.pagesTimeline = new Chart(document.getElementById('pagesTimelineChart'), {
-                type: 'line',
-                data: {
-                    labels: timelineYears,
-                    datasets: [{ label: t.dsPages, data: timelineYears.map(y => timelineData[y].pages), borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.03)', fill: true, tension: 0.3, pointRadius: 4 }]
-                }
-            });
-
-            // 2. Books Timeline Chart
-            charts.booksTimeline = new Chart(document.getElementById('booksTimelineChart'), {
-                type: 'bar',
-                data: {
-                    labels: timelineYears,
-                    datasets: [{ label: t.dsBooks, data: timelineYears.map(y => timelineData[y].books), backgroundColor: '#d97706', borderRadius: 4 }]
-                }
-            });
-
-            // 3. Decade Chart
-            charts.decade = new Chart(document.getElementById('decadeChart'), {
-                type: 'bar',
-                data: {
-                    labels: decadesSorted.map(d => d.label),
-                    datasets: [{ label: t.dsAvgRating, data: decadesSorted.map(d => d.avg.toFixed(2)), backgroundColor: '#b45309', borderRadius: 4 }]
-                },
-                options: { indexAxis: 'y', scales: { x: { min: minDecadeAvg, max: 5.0 } } }
-            });
-
-            // 4. Star Chart
-            charts.star = new Chart(document.getElementById('starChart'), {
-                type: 'bar',
-                data: {
-                    labels: [`5 ${t.starsLabel}`, `4 ${t.starsLabel}`, `3 ${t.starsLabel}`, `2 ${t.starsLabel}`, `1 ${currentLang === 'it' ? t.starLabelSingle : t.starsLabel}`],
-                    datasets: [{ label: t.dsBooksCount, data: [stars[5], stars[4], stars[3], stars[2], stars[1]], backgroundColor: '#f59e0b', borderRadius: 6 }]
-                }
-            });
-
-            // Rendering Tabelle Localizzate
-            const booksTbody = document.querySelector('#volumeBooksTable tbody');
-            booksTbody.innerHTML = '';
-            authorsBooksSorted.forEach(a => { 
-                booksTbody.innerHTML += `<tr><td><span class="badge badge-count">${esc(a.name)}</span></td><td><b>${a.count.toLocaleString(localeStr)}</b> ${t.booksSuffix}</td></tr>`; 
-            });
-
-            const pagesTbody = document.querySelector('#volumePagesTable tbody');
-            pagesTbody.innerHTML = '';
-            authorsPagesSorted.forEach(a => { 
-                pagesTbody.innerHTML += `<tr><td><span class="badge badge-pages">${esc(a.name)}</span></td><td><b>${a.pages.toLocaleString(localeStr)}</b> ${t.pagesSuffix}</td></tr>`; 
-            });
-
-            const authorsTbody = document.querySelector('#authorsTable tbody');
-            authorsTbody.innerHTML = '';
-            authorsSorted.forEach(a => { 
-                authorsTbody.innerHTML += `<tr><td><span class="badge">${esc(a.name)}</span></td><td><b>${a.avg.toLocaleString(localeStr, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b> / 5.0</td><td>${a.count.toLocaleString(localeStr)} ${t.booksSuffix}</td></tr>`; 
-            });
-
-            const shelvesTbody = document.querySelector('#shelvesTable tbody');
-            shelvesTbody.innerHTML = '';
-            shelvesSorted.forEach(s => { 
-                shelvesTbody.innerHTML += `<tr><td><span class="badge badge-shelf">${esc(s.name)}</span></td><td><b>${s.avg.toLocaleString(localeStr, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b> / 5.0</td><td>${s.count.toLocaleString(localeStr)} ${t.booksSuffix}</td></tr>`; 
-            });
-
-            const bayesTbody = document.querySelector('#bayesAuthorsTable tbody');
-            bayesTbody.innerHTML = '';
-            bayesianAuthors.forEach((a, i) => {
-                bayesTbody.innerHTML += `
-                    <tr>
-                        <td><b>#${i+1}</b></td>
-                        <td><span class="badge badge-bayes">${esc(a.name)}</span></td>
-                        <td><b style="color:#b45309;">${a.score.toLocaleString(localeStr, {minimumFractionDigits: 3, maximumFractionDigits: 3})} ${t.points}</b></td>
-                        <td>${a.avg.toLocaleString(localeStr, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td><b>${a.count.toLocaleString(localeStr)}</b> ${t.booksSuffix}</td>
-                    </tr>`;
-            });
-
-            // Rendering della Tabella dei 10 Libri più Lunghi
-            const longestTbody = document.querySelector('#longestBooksTable tbody');
-            longestTbody.innerHTML = '';
-            longestBooksSorted.forEach((b, i) => {
-                longestTbody.innerHTML += `
-                    <tr>
-                        <td><b>#${i+1}</b></td>
-                        <td><b>${esc(b.title)}</b></td>
-                        <td><span class="badge" style="background-color:#f5f5f4; color:#44403c;">${esc(b.author)}</span></td>
-                        <td><b style="color:#c2410c;">${b.pages.toLocaleString(localeStr)}</b> ${t.pagesSuffix}</td>
-                    </tr>`;
-            });
-
-            const favoritesTbody = document.querySelector('#favoritesTable tbody');
-            favoritesTbody.innerHTML = '';
-            
-            const perfectBooks = books.filter(b => b.rating === 5);
-            for (let i = perfectBooks.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [perfectBooks[i], perfectBooks[j]] = [perfectBooks[j], perfectBooks[i]];
-            }
-            
-            perfectBooks.slice(0, 10).forEach(b => {
-                favoritesTbody.innerHTML += `<tr><td>${esc(b.title)}</td><td><span class="badge" style="background-color:#f5f5f4; color:#44403c;">${esc(b.author)}</span></td><td>${b.year || t.notSpecified}</td></tr>`;
-            });
-        }
-
-        setLanguage('en');
-    </script>
+    setLanguage('en');
+  </script>
 </body>
 </html>
