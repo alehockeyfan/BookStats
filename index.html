@@ -392,6 +392,10 @@
           <h2 id="lblStarChart">Rating Distribution</h2>
           <canvas id="starChart"></canvas>
         </div>
+	<div class="card">
+  		<h2 id="lblMonthRhythm">Reading Rhythm by Month</h2>
+  		<canvas id="monthRhythmChart"></canvas>
+	</div>
 
         <div class="card full">
           <h2 id="lblProfile">Reading profile</h2>
@@ -543,7 +547,11 @@
 	kpiAuthorsNote: "Approximate — based on exact name matches",
         lblPagesTimeline: "Pages Read Per Year",
         lblBooksTimeline: "Books Read Per Year",
-		lblPubYearChart: "Books by Publication Year",
+	lblPubYearChart: "Books by Publication Year",
+	lblMonthRhythm: "Reading Rhythm by Month",
+	monthJan: "Jan", monthFeb: "Feb", monthMar: "Mar", monthApr: "Apr",
+	monthMay: "May", monthJun: "Jun", monthJul: "Jul", monthAug: "Aug",
+	monthSep: "Sep", monthOct: "Oct", monthNov: "Nov", monthDec: "Dec",
         lblDecadeChart: "Decade Leaderboard (by average rating)",
         lblStarChart: "Rating Distribution",
         lblProfile: "Reading profile",
@@ -629,7 +637,11 @@
 	kpiAuthorsNote: "Stima approssimativa — basata su corrispondenza esatta dei nomi",
         lblPagesTimeline: "Pagine lette per anno",
         lblBooksTimeline: "Libri letti per anno",
-		lblPubYearChart: "Libri per anno di pubblicazione",
+	lblPubYearChart: "Libri per anno di pubblicazione",
+	lblMonthRhythm: "Ritmo di lettura per mese",
+	monthJan: "Gen", monthFeb: "Feb", monthMar: "Mar", monthApr: "Apr",
+	monthMay: "Mag", monthJun: "Giu", monthJul: "Lug", monthAug: "Ago",
+	monthSep: "Set", monthOct: "Ott", monthNov: "Nov", monthDec: "Dic",
         lblDecadeChart: "Classifica dei decenni (per media voti)",
         lblStarChart: "Distribuzione delle valutazioni",
         lblProfile: "Profilo di lettura",
@@ -715,7 +727,7 @@
       [
         'eyebrow','mainTitle','subtitle','guideTitle','btnUpload','placeholderText','calloutTitle','calloutText',
         'preview1Label','preview2Label','preview3Label','preview4Label','kpiBooksLabel','kpiBooksNote','kpiPagesLabel','kpiPagesNote',
-        'kpiAvgLabel','kpiAvgNote','kpiBestYearLabel','kpiBestYearNote','kpiAuthorsLabel','kpiAuthorsNote',lblPagesTimeline,lblBooksTimeline,lblPubYearChart,lblDecadeChart,
+        'kpiAvgLabel','kpiAvgNote','kpiBestYearLabel','kpiBestYearNote','kpiAuthorsLabel','kpiAuthorsNote',lblPagesTimeline,lblBooksTimeline,lblPubYearChart,lblMonthRhythm,lblDecadeChart,
         'lblStarChart','lblProfile','profile1Label','profile2Label','profile3Label','profile4Label','lblTopAuthorsBooks',
         'thAuthorBooks','thBooksReg','lblTopAuthorsPages','thAuthorPages','thTotalPages','lblHighestRatedAuthors','thAuthorRated',
         'thAvgRating','thBooksRead','lblShelvesTable','thShelfCat','thAvgRatingShelf','thBooksReadShelf','lblMostUsedShelves',
@@ -814,10 +826,17 @@
         const pages = parseFloat(rawPages) || 0;
         const year = parseFloat(rawPubYear) || parseFloat(rawFallbackYear) || null;
         let readYear = null;
-        if (rawDateRead && typeof rawDateRead === 'string') {
-          const match = rawDateRead.match(/(\d{4})/);
-          if (match) readYear = parseInt(match[1], 10);
-        }
+let readMonth = null;
+if (rawDateRead && typeof rawDateRead === 'string') {
+  const match = rawDateRead.match(/(\d{4})\/(\d{2})\/(\d{2})/);
+  if (match) {
+    readYear = parseInt(match[1], 10);
+    readMonth = parseInt(match[2], 10);
+  } else {
+    const yearOnly = rawDateRead.match(/(\d{4})/);
+    if (yearOnly) readYear = parseInt(yearOnly[1], 10);
+  }
+}
         books.push({
           title: data[titleIdx] || '',
           author: data[authorIdx] || '',
@@ -825,7 +844,8 @@
           pages,
           shelves: rawShelves ? rawShelves.split(',').map(s => s.trim()).filter(Boolean) : [],
           year,
-          readYear
+          readYear,
+	  readMonth
         });
       }
       parsedBooks = books;
@@ -876,7 +896,8 @@
       let totalGlobalCount = 0;
       const timelineData = {};
       const ratedYearData = {};
-	  const pubYearGroups = {};
+      const pubYearGroups = {};
+      const monthGroups = [0,0,0,0,0,0,0,0,0,0,0,0]; // indice 0 = gennaio
       const decadeGroups = {};
       const shelfGroups = {};
       const shelfUsage = {};
@@ -906,7 +927,9 @@
   if (!pubYearGroups[b.year]) pubYearGroups[b.year] = 0;
   pubYearGroups[b.year]++;
 }
-if (b.year && b.rating > 0) {
+	if (b.readMonth) {
+  monthGroups[b.readMonth - 1]++;
+}
         if (b.year && b.rating > 0) {
           const decade = Math.floor(b.year / 10) * 10;
           const label = decade + 's';
@@ -1066,9 +1089,8 @@ charts.pubYear = new Chart(pubYearCtx, {
       data: pubYearsSorted.map(y => pubYearGroups[y]),
       backgroundColor: pubYearsSorted.map(y => {
         const ratio = maxYear > minYear ? (y - minYear) / (maxYear - minYear) : 0;
-        // Gradiente da giallo chiaro (#fef08a) a ambra scuro (#b45309)
         const r1 = 254, g1 = 240, b1 = 138;
-        const r2 = 180, g2 = 83, b2 = 9;
+        const r2 = 250, g2 = 204, b2 = 21;
         const r = Math.round(r1 + (r2 - r1) * ratio);
         const g = Math.round(g1 + (g2 - g1) * ratio);
         const b = Math.round(b1 + (b2 - b1) * ratio);
@@ -1094,19 +1116,33 @@ charts.pubYear = new Chart(pubYearCtx, {
     }
   }
 });
+
+const monthLabels = [
+  t.monthJan, t.monthFeb, t.monthMar, t.monthApr,
+  t.monthMay, t.monthJun, t.monthJul, t.monthAug,
+  t.monthSep, t.monthOct, t.monthNov, t.monthDec
+];
+
+charts.monthRhythm = new Chart(document.getElementById('monthRhythmChart'), {
+  type: 'bar',
+  data: {
+    labels: monthLabels,
+    datasets: [{
+      label: t.dsBooksCount,
+      data: monthGroups,
+      backgroundColor: chartAccent(),
+      borderRadius: 8,
+      barPercentage: 0.85,
+      categoryPercentage: 0.9
+    }]
+  },
+  options: baseChartOptions()
+});
       charts.decade = new Chart(document.getElementById('decadeChart'), {
-        type: 'bar',
-        data: {
-          labels: decadesSorted.map(d => d.label),
-          datasets: [{
-            label: t.dsAvgRating,
-            data: decadesSorted.map(d => Number(d.avg.toFixed(2))),
-            backgroundColor: chartAccent2(),
-            borderRadius: 8
-          }]
-        },
-        options: decadeOpts
-      });
+  type: 'bar',
+  data: { labels: decadesSorted.map(d => d.label), datasets: [{ label: t.dsAvgRating, data: decadesSorted.map(d => Number(d.avg.toFixed(2))), backgroundColor: chartAccent(), borderRadius: 8 }] },
+  options: decadeOpts
+});
       charts.star = new Chart(document.getElementById('starChart'), {
         type: 'bar',
         data: {
@@ -1120,7 +1156,7 @@ charts.pubYear = new Chart(pubYearCtx, {
           datasets: [{
             label: t.dsBooksCount,
             data: [stars[5], stars[4], stars[3], stars[2], stars[1]],
-            backgroundColor: chartAccent2(),
+            backgroundColor: chartAccent(),
             borderRadius: 8
           }]
         },
