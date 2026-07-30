@@ -382,7 +382,7 @@
         </div>
 		  <div class="card">
   		  <h2 id="lblPubYearChart">Books by Publication Year</h2>
-  		  anvas id="pubYearChart"></canvas>
+  		  <canvas id="pubYearChart"></canvas>
 		  </div>
         <div class="card">
           <h2 id="lblDecadeChart">Decade Leaderboard</h2>
@@ -876,6 +876,7 @@
       let totalGlobalCount = 0;
       const timelineData = {};
       const ratedYearData = {};
+	  const pubYearGroups = {};
       const decadeGroups = {};
       const shelfGroups = {};
       const shelfUsage = {};
