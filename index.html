@@ -377,32 +377,46 @@
       <section id="dashboardContent" class="dashboard">
         <div class="card">
           <h2 id="lblPagesTimeline">Pages Read Per Year</h2>
+          <p class="muted" id="descPagesTimeline"></p>
           <canvas id="pagesTimelineChart"></canvas>
         </div>
         <div class="card">
           <h2 id="lblBooksTimeline">Books Read Per Year</h2>
+          <p class="muted" id="descBooksTimeline"></p>
           <canvas id="booksTimelineChart"></canvas>
         </div>
 		  <div class="card">
   		  <h2 id="lblPubYearChart">Books by Publication Year</h2>
+        <p class="muted" id="descPubYear"></p>
   		  <canvas id="pubYearChart"></canvas>
 		  </div>
         <div class="card">
           <h2 id="lblDecadeChart">Decade Leaderboard</h2>
+          <p class="muted" id="descDecade"></p>
           <canvas id="decadeChart"></canvas>
         </div>
 	<div class="card">
 	  <h2 id="lblPublisherChart">Top Publishers</h2>
+    <p class="muted" id="descPublisher"></p>
 	  <canvas id="publisherChart"></canvas>
 	</div>
         <div class="card">
           <h2 id="lblStarChart">Rating Distribution</h2>
+          <p class="muted" id="descStar"></p>
           <canvas id="starChart"></canvas>
         </div>
+
 	<div class="card">
   		<h2 id="lblMonthRhythm">Reading Rhythm by Month</h2>
+        <p class="muted" id="descMonthRhythm"></p>
   		<canvas id="monthRhythmChart"></canvas>
 	</div>
+
+  <div class="card"><h2 id="lblPageCount">Books By Page Count</h2>
+      <p class="muted" id="descPageCount"></p>
+      <p class="muted" id="descAvgPages"></p>
+    <canvas id="pageCountChart"></canvas>
+  </div>
 
         <div class="card full">
           <h2 id="lblProfile">Reading profile</h2>
@@ -416,6 +430,7 @@
 
         <div class="card">
           <h2 id="lblTopAuthorsBooks">Most Read Authors (books)</h2>
+          <p class="muted" id="descTopAuthorsBooks"></p>
           <div class="table-wrap">
             <table id="volumeBooksTable">
               <thead><tr><th id="thAuthorBooks">Author</th><th id="thBooksReg">Books</th></tr></thead>
@@ -426,6 +441,7 @@
 
         <div class="card">
           <h2 id="lblTopAuthorsPages">Most Read Authors (pages)</h2>
+          <p class="muted" id="descTopAuthorsPages"></p>
           <div class="table-wrap">
             <table id="volumePagesTable">
               <thead><tr><th id="thAuthorPages">Author</th><th id="thTotalPages">Pages</th></tr></thead>
@@ -576,7 +592,19 @@
 	monthJan: "Jan", monthFeb: "Feb", monthMar: "Mar", monthApr: "Apr",
 	monthMay: "May", monthJun: "Jun", monthJul: "Jul", monthAug: "Aug",
 	monthSep: "Sep", monthOct: "Oct", monthNov: "Nov", monthDec: "Dec",
-        lblDecadeChart: "Decade Leaderboard (by average rating)",
+  descPagesTimeline: 'Your best year was {year} with {pages} pages.',
+descBooksTimeline: 'Your best year was {year} with {books} books.',
+descPubYear: 'The year with most published works read by you was {year} with {count} books.',
+descDecade: 'Your top-rated decade is {decade} with {avg} / 5.',
+descPublisher: 'Your most-read publisher is {publisher} with {count} works.',
+descStar: 'Most of your books are rated {star} stars.',
+descMonthRhythm: 'Your best all-time month is {month} with {count} books.',
+lblPageCount: 'Books By Page Count',
+descPageCount: 'Most of your books are between {range} pages.',
+descAvgPages: 'Average page count: {avg}',
+descTopAuthorsBooks: 'Your most read author is {author} with {count} books.',
+descTopAuthorsPages: 'Your most read author is {author} with {pages} pages.',
+  lblDecadeChart: "Decade Leaderboard (by average rating)",
 	lblPublisherChart: 'Top Publishers',
         lblStarChart: "Rating Distribution",
         lblProfile: "Reading profile",
@@ -616,12 +644,12 @@
         thLongestTitle: "Title",
         thLongestAuthor: "Author",
         thLongestPages: "Pages",
-	thLongestPages: "Pages",
-	lblReread: 'Reread Books',
-	thRereadTitle: 'Title',
-	thRereadAuthor: 'Author',
-	thRereadCount: 'Times read',
-	lblSpotlight: "Random Selection of Your 5-Star Books",
+	      thLongestPages: "Pages",
+	      lblReread: 'Reread Books',
+	      thRereadTitle: 'Title',
+	      thRereadAuthor: 'Author',
+	      thRereadCount: 'Times read',
+	      lblSpotlight: "Random Selection of Your 5-Star Books",
         thTitle: "Title",
         thAuthorFav: "Author",
         thPubYear: "Publication year",
@@ -672,6 +700,18 @@
 	monthJan: "Gen", monthFeb: "Feb", monthMar: "Mar", monthApr: "Apr",
 	monthMay: "Mag", monthJun: "Giu", monthJul: "Lug", monthAug: "Ago",
 	monthSep: "Set", monthOct: "Ott", monthNov: "Nov", monthDec: "Dic",
+  descPagesTimeline: 'Il tuo anno migliore è stato il {year} con {pages} pagine.',
+descBooksTimeline: 'Il tuo anno migliore è stato il {year} con {books} libri.',
+descPubYear: 'L\'anno con più opere pubblicate che hai letto è il {year} con {count} libri.',
+descDecade: 'Il tuo decennio più apprezzato è {decade} con {avg} / 5.',
+descPublisher: 'Il tuo editore più letto è {publisher} con {count} opere.',
+descStar: 'La maggior parte dei tuoi libri ha {star} stelle.',
+descMonthRhythm: 'Il tuo mese migliore di sempre è {month} con {count} libri.',
+lblPageCount: 'Libri per numero di pagine',
+descPageCount: 'La maggior parte dei tuoi libri ha tra {range} pagine.',
+descAvgPages: 'Media pagine per libro: {avg}',
+descTopAuthorsBooks: 'Il tuo autore più letto è {author} con {count} libri.',
+descTopAuthorsPages: 'Il tuo autore più letto è {author} con {pages} pagine.',
         lblDecadeChart: "Classifica dei decenni (per media voti)",
 	lblPublisherChart: 'Top Editori',
         lblStarChart: "Distribuzione delle valutazioni",
@@ -712,10 +752,10 @@
         thLongestTitle: "Titolo",
         thLongestAuthor: "Autore",
         thLongestPages: "Pagine",
-	lblReread: 'Libri riletti',
-	thRereadTitle: 'Titolo',
-	thRereadAuthor: 'Autore',
-	thRereadCount: 'Numero letture',
+	      lblReread: 'Libri riletti',
+	      thRereadTitle: 'Titolo',
+	      thRereadAuthor: 'Autore',
+	      thRereadCount: 'Numero letture',
         lblSpotlight: "Selezione casuale dei tuoi libri da 5 stelle",
         thTitle: "Titolo",
         thAuthorFav: "Autore",
@@ -762,15 +802,16 @@
       [
         'eyebrow','mainTitle','subtitle','guideTitle','btnUpload','placeholderText','calloutTitle','calloutText',
         'preview1Label','preview2Label','preview3Label','preview4Label','kpiBooksLabel','kpiBooksNote','kpiPagesLabel','kpiPagesNote',
-        'kpiAvgLabel','kpiAvgNote','kpiBestYearLabel','kpiBestYearNote','kpiAuthorsLabel','kpiAuthorsNote','lblPagesTimeline','lblBooksTimeline','lblPubYearChart','lblMonthRhythm','lblDecadeChart','lblPublisherChart',
+        'kpiAvgLabel','kpiAvgNote','kpiBestYearLabel','kpiBestYearNote','kpiAuthorsLabel','kpiAuthorsNote','lblPagesTimeline','lblBooksTimeline','lblPubYearChart','lblMonthRhythm','lblMonthRhythm',
+'lblPageCount','lblDecadeChart','lblPublisherChart',
         'lblStarChart','lblProfile','profile1Label','profile2Label','profile3Label','profile4Label','lblTopAuthorsBooks',
         'thAuthorBooks','thBooksReg','lblTopAuthorsPages','thAuthorPages','thTotalPages','lblHighestRatedAuthors','thAuthorRated',
         'thAvgRating','thBooksRead','lblShelvesTable','thShelfCat','thAvgRatingShelf','thBooksReadShelf','lblMostUsedShelves',
         'thMostUsedShelf','thMostUsedCount','lblBestYears','thYear','thYearAvg','thYearBooks','lblHallOfFame','lblHallOfFameDesc',
         'thPos','thBayesAuthor','thWeightedScore','thRealAvg','thBayesBooks','lblLongestBooks','thLongestTitle','thLongestAuthor',
         'thLongestPages', 'lblReread',
-	'thRereadTitle','thRereadAuthor',
-	'thRereadCount',
+	      'thRereadTitle','thRereadAuthor',
+	      'thRereadCount',
 	'lblSpotlight','thTitle','thAuthorFav','thPubYear'
       ].forEach(id => {
         const el = document.getElementById(id);
@@ -1073,6 +1114,30 @@ b.shelves.forEach(shelf => {
         .slice(0, 10);
       const minDecadeAvg = decadesSorted.length ? Math.max(1, Math.floor(Math.min(...decadesSorted.map(d => d.avg)) - 0.5)) : 1;
       const longestBooksSorted = [...books].filter(b => b.pages > 0 && b.title).sort((a,b) => b.pages - a.pages).slice(0, 10);
+
+    const pageBuckets = ['1-100','101-200','201-300','301-400','401-500','501-600','601-1000','1000+'];
+const pageBucketCounts = [0,0,0,0,0,0,0,0];
+let totalPagesForAvg = 0, countPagesForAvg = 0;
+
+books.forEach(b => {
+  if (!b.pages || b.pages <= 0) return;
+  totalPagesForAvg += b.pages;
+  countPagesForAvg++;
+  const p = b.pages;
+  if (p <= 100) pageBucketCounts[0]++;
+  else if (p <= 200) pageBucketCounts[1]++;
+  else if (p <= 300) pageBucketCounts[2]++;
+  else if (p <= 400) pageBucketCounts[3]++;
+  else if (p <= 500) pageBucketCounts[4]++;
+  else if (p <= 600) pageBucketCounts[5]++;
+  else if (p <= 1000) pageBucketCounts[6]++;
+  else pageBucketCounts[7]++;
+});
+
+const avgPages = countPagesForAvg > 0 ? totalPagesForAvg / countPagesForAvg : 0;
+const bestPageBucketIdx = pageBucketCounts.indexOf(Math.max(...pageBucketCounts));
+const bestPageBucketLabel = pageBuckets[bestPageBucketIdx];
+
 	const rereadBooksSorted = books
   	.filter(b => b.readCount > 1)
   	.sort((a,b) => b.readCount - a.readCount)
@@ -1099,6 +1164,36 @@ b.shelves.forEach(shelf => {
       document.getElementById('profile2Value').innerText = streak ? `${formatNum(streak)} ${t.streakSuffix}` : t.noData;
       document.getElementById('profile3Value').innerText = topShelfUsage ? `${topShelfUsage.name} · ${formatNum(topShelfUsage.count)}` : t.noData;
       document.getElementById('profile4Value').innerText = `${formatNum(perfectBooks.length)}`;
+
+      const bestPagesYear = timelineYears.map(y => ({ year: y, pages: timelineData[y].pages })).sort((a,b) => b.pages - a.pages)[0] || null;
+const bestBooksYear = timelineYears.map(y => ({ year: y, books: timelineData[y].books })).sort((a,b) => b.books - a.books)[0] || null;
+const bestPubYear = pubYearsSorted.map(y => ({ year: y, count: pubYearGroups[y] })).sort((a,b) => b.count - a.count)[0] || null;
+const bestDecade = decadesSorted[0] || null;
+const bestPublisher = publishersSorted[0] || null;
+const starEntries = [
+  { star: 5, count: stars[5] },
+  { star: 4, count: stars[4] },
+  { star: 3, count: stars[3] },
+  { star: 2, count: stars[2] },
+  { star: 1, count: stars[1] }
+];
+const bestStar = starEntries.sort((a,b) => b.count - a.count)[0];
+const bestMonthIdx = monthGroups.indexOf(Math.max(...monthGroups));
+const bestMonthName = [t.monthJan,t.monthFeb,t.monthMar,t.monthApr,t.monthMay,t.monthJun,t.monthJul,t.monthAug,t.monthSep,t.monthOct,t.monthNov,t.monthDec][bestMonthIdx];
+const bestMonthCount = monthGroups[bestMonthIdx];
+
+document.getElementById('descPagesTimeline').innerText = bestPagesYear ? t.descPagesTimeline.replace('{year}', bestPagesYear.year).replace('{pages}', formatNum(bestPagesYear.pages)) : '';
+document.getElementById('descBooksTimeline').innerText = bestBooksYear ? t.descBooksTimeline.replace('{year}', bestBooksYear.year).replace('{books}', formatNum(bestBooksYear.books)) : '';
+document.getElementById('descPubYear').innerText = bestPubYear ? t.descPubYear.replace('{year}', bestPubYear.year).replace('{count}', formatNum(bestPubYear.count)) : '';
+document.getElementById('descDecade').innerText = bestDecade ? t.descDecade.replace('{decade}', bestDecade.label).replace('{avg}', formatNum(bestDecade.avg,2)) : '';
+document.getElementById('descPublisher').innerText = bestPublisher ? t.descPublisher.replace('{publisher}', bestPublisher.name).replace('{count}', formatNum(bestPublisher.count)) : '';
+document.getElementById('descStar').innerText = bestStar ? t.descStar.replace('{star}', bestStar.star) : '';
+document.getElementById('descMonthRhythm').innerText = bestMonthCount > 0 ? t.descMonthRhythm.replace('{month}', bestMonthName).replace('{count}', formatNum(bestMonthCount)) : '';
+
+document.getElementById('descPageCount').innerText = countPagesForAvg > 0 ? t.descPageCount.replace('{range}', bestPageBucketLabel) : '';
+document.getElementById('descAvgPages').innerText = countPagesForAvg > 0 ? t.descAvgPages.replace('{avg}', formatNum(avgPages,0)) : '';
+document.getElementById('descTopAuthorsBooks').innerText = authorsBooksSorted.length ? t.descTopAuthorsBooks.replace('{author}', esc(authorsBooksSorted[0].name)).replace('{count}', formatNum(authorsBooksSorted[0].count)) : '';
+document.getElementById('descTopAuthorsPages').innerText = authorsPagesSorted.length ? t.descTopAuthorsPages.replace('{author}', esc(authorsPagesSorted[0].name)).replace('{pages}', formatNum(authorsPagesSorted[0].pages)) : '';
 
       destroyCharts();
       const lineOpts = baseChartOptions();
@@ -1198,6 +1293,16 @@ charts.monthRhythm = new Chart(document.getElementById('monthRhythmChart'), {
   },
   options: baseChartOptions()
 });
+
+charts.pageCount = new Chart(document.getElementById('pageCountChart'), {
+  type: 'bar',
+  data: {
+    labels: pageBuckets,
+    datasets: [{ label: t.dsBooksCount, data: pageBucketCounts, backgroundColor: chartAccent(), borderRadius: 8 }]
+  },
+  options: baseChartOptions()
+});
+
       charts.decade = new Chart(document.getElementById('decadeChart'), {
   type: 'bar',
   data: { labels: decadesSorted.map(d => d.label), datasets: [{ label: t.dsAvgRating, data: decadesSorted.map(d => Number(d.avg.toFixed(2))), backgroundColor: chartAccent(), borderRadius: 8 }] },
@@ -1281,6 +1386,7 @@ renderRows('#rereadBooksTable tbody',
     `<tr><td><strong>${i+1}</strong></td><td><strong>${esc(b.title)}</strong></td><td><span class="badge">${esc(b.author)}</span></td><td><strong>${formatNum(b.readCount)}</strong></td></tr>`
   )
 );
+
 renderRows('#favoritesTable tbody',
   perfectBooks.slice(0, 7).map(b =>
     `<tr><td>${esc(b.title)}</td><td><span class="badge">${esc(b.author)}</span></td><td>${b.year || t.notSpecified}</td></tr>`
