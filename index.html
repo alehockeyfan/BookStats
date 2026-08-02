@@ -112,13 +112,16 @@
       padding: 0 18px;
     }
     .btn:hover, .theme-btn:hover, .control:hover { filter: brightness(0.98); }
-    .upload-wrap { position: relative; overflow: hidden; }
-    .upload-wrap input[type=file] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-    }
+    .upload-wrap { position: relative; }
+.upload-wrap input[type=file] {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
     .hero-grid {
       display: grid;
       grid-template-columns: 1.35fr 0.85fr;
@@ -308,7 +311,7 @@
         <button type="button" class="control theme-btn" id="themeToggle" aria-label="Toggle dark mode">🌙 Theme</button>
         <div class="upload-wrap">
           <button class="btn" id="btnUpload" type="button">Load Goodreads CSV</button>
-          <input type="file" id="csvFile" accept=".csv" aria-label="Upload Goodreads CSV" />
+          <input type="file" id="csvFile" accept=".csv" aria-label="Upload Goodreads CSV" tabindex="-1">
         </div>
       </div>
     </header>
@@ -795,6 +798,20 @@ descTopAuthorsPages: 'Il tuo autore più letto è {author} con {pages} pagine.',
     function chartAccent(){ return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); }
     function chartAccent2(){ return getComputedStyle(document.documentElement).getPropertyValue('--accent-2').trim(); }
 
+    function shadeByValue(values) {
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  return values.map(v => {
+    const ratio = max > min ? (v - min) / (max - min) : 1;
+    const r1 = 254, g1 = 240, b1 = 138;
+    const r2 = 250, g2 = 204, b2 = 21;
+    const r = Math.round(r1 + (r2 - r1) * ratio);
+    const g = Math.round(g1 + (g2 - g1) * ratio);
+    const b = Math.round(b1 + (b2 - b1) * ratio);
+    return `rgb(${r},${g},${b})`;
+  });
+}
+
     function setLanguage(lang) {
       currentLang = lang;
       document.documentElement.lang = lang;
@@ -827,9 +844,14 @@ descTopAuthorsPages: 'Il tuo autore più letto è {author} con {pages} pagine.',
       if (parsedBooks.length) renderDashboard(parsedBooks);
     });
 
+    document.getElementById('btnUpload').addEventListener('click', () => {
+    document.getElementById('csvFile').click();
+    });
+
     document.getElementById('csvFile').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (!file) return;
+      e.target.blur();
       const reader = new FileReader();
       reader.onload = function(evt) {
         const banner = document.getElementById('error-banner');
@@ -1221,7 +1243,7 @@ document.getElementById('descTopAuthorsPages').innerText = authorsPagesSorted.le
           datasets: [{
             label: t.dsBooks,
             data: timelineYears.map(y => timelineData[y].books),
-            backgroundColor: chartAccent(),
+            backgroundColor: shadeByValue(timelineYears.map(y => timelineData[y].books)),
             borderRadius: 8
           }]
         },
@@ -1243,14 +1265,14 @@ charts.pubYear = new Chart(pubYearCtx, {
       label: t.dsBooksCount,
       data: pubYearsSorted.map(y => pubYearGroups[y]),
       backgroundColor: pubYearsSorted.map(y => {
-        const ratio = maxYear > minYear ? (y - minYear) / (maxYear - minYear) : 0;
-        const r1 = 254, g1 = 240, b1 = 138;
-        const r2 = 250, g2 = 204, b2 = 21;
-        const r = Math.round(r1 + (r2 - r1) * ratio);
-        const g = Math.round(g1 + (g2 - g1) * ratio);
-        const b = Math.round(b1 + (b2 - b1) * ratio);
-        return `rgb(${r},${g},${b})`;
-      }),
+  const ratio = maxYear > minYear ? (y - minYear) / (maxYear - minYear) : 0;
+  const r1 = 254, g1 = 240, b1 = 138;
+  const r2 = 250, g2 = 204, b2 = 21;
+  const r = Math.round(r1 + (r2 - r1) * ratio);
+  const g = Math.round(g1 + (g2 - g1) * ratio);
+  const b = Math.round(b1 + (b2 - b1) * ratio);
+  return `rgb(${r},${g},${b})`;
+}),
       borderRadius: 6,
       barPercentage: 0.9,
       categoryPercentage: 0.95
@@ -1285,7 +1307,7 @@ charts.monthRhythm = new Chart(document.getElementById('monthRhythmChart'), {
     datasets: [{
       label: t.dsBooksCount,
       data: monthGroups,
-      backgroundColor: chartAccent(),
+      backgroundColor: shadeByValue(monthGroups),
       borderRadius: 8,
       barPercentage: 0.85,
       categoryPercentage: 0.9
@@ -1298,21 +1320,26 @@ charts.pageCount = new Chart(document.getElementById('pageCountChart'), {
   type: 'bar',
   data: {
     labels: pageBuckets,
-    datasets: [{ label: t.dsBooksCount, data: pageBucketCounts, backgroundColor: chartAccent(), borderRadius: 8 }]
+    datasets: [{ label: t.dsBooksCount, data: pageBucketCounts,
+      backgroundColor: shadeByValue(pageBucketCounts),
+      borderRadius: 8 }]
   },
   options: baseChartOptions()
 });
 
       charts.decade = new Chart(document.getElementById('decadeChart'), {
   type: 'bar',
-  data: { labels: decadesSorted.map(d => d.label), datasets: [{ label: t.dsAvgRating, data: decadesSorted.map(d => Number(d.avg.toFixed(2))), backgroundColor: chartAccent(), borderRadius: 8 }] },
+  data: { labels: decadesSorted.map(d => d.label), datasets: [{ label: t.dsAvgRating, data: decadesSorted.map(d => Number(d.avg.toFixed(2))),
+    backgroundColor: shadeByValue(decadesSorted.map(d => Number(d.avg.toFixed(2)))), borderRadius: 8 }] },
   options: decadeOpts
 });
 charts.publisher = new Chart(document.getElementById('publisherChart'), {
   type: 'bar',
   data: {
     labels: publishersSorted.map(p => p.name),
-    datasets: [{ label: t.dsBooksCount, data: publishersSorted.map(p => p.count), backgroundColor: chartAccent(), borderRadius: 8 }]
+    datasets: [{ label: t.dsBooksCount, data: publishersSorted.map(p => p.count),
+    backgroundColor: shadeByValue(publishersSorted.map(p => p.count)),
+    borderRadius: 8 }]
   },
   options: { ...baseChartOptions(), indexAxis: 'y' }
 });
@@ -1329,7 +1356,7 @@ charts.publisher = new Chart(document.getElementById('publisherChart'), {
           datasets: [{
             label: t.dsBooksCount,
             data: [stars[5], stars[4], stars[3], stars[2], stars[1]],
-            backgroundColor: chartAccent(),
+            backgroundColor: shadeByValue([stars[5], stars[4], stars[3], stars[2], stars[1]]),
             borderRadius: 8
           }]
         },
