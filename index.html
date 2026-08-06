@@ -475,7 +475,25 @@
 	  <canvas id="publisherChart"></canvas>
 	</div>
 
-<div class="card full">
+        <div class="card">
+          <h2 id="lblStarChart">Rating Distribution</h2>
+          <p class="muted" id="descStar"></p>
+          <canvas id="starChart"></canvas>
+        </div>
+
+	<div class="card">
+  		<h2 id="lblMonthRhythm">Reading Rhythm by Month</h2>
+        <p class="muted" id="descMonthRhythm"></p>
+  		<canvas id="monthRhythmChart"></canvas>
+	</div>
+
+  <div class="card"><h2 id="lblPageCount">Books By Page Count</h2>
+      <p class="muted" id="descPageCount"></p>
+      <p class="muted" id="descAvgPages"></p>
+    <canvas id="pageCountChart"></canvas>
+  </div>
+
+  <div class="card full">
   <h2 id="lblNationalityMap">Author Nationalities</h2>
   <p class="muted" id="mapHint">Darker tiles indicate more authors from that country.</p>
   <div id="nationalityMap">
@@ -1433,26 +1451,11 @@
  <circle cx="1798.2" cy="719.3" id="2">
  </circle>
 </svg>
+</svg>
   </div>
 </div>
+</div>
 
-        <div class="card">
-          <h2 id="lblStarChart">Rating Distribution</h2>
-          <p class="muted" id="descStar"></p>
-          <canvas id="starChart"></canvas>
-        </div>
-
-	<div class="card">
-  		<h2 id="lblMonthRhythm">Reading Rhythm by Month</h2>
-        <p class="muted" id="descMonthRhythm"></p>
-  		<canvas id="monthRhythmChart"></canvas>
-	</div>
-
-  <div class="card"><h2 id="lblPageCount">Books By Page Count</h2>
-      <p class="muted" id="descPageCount"></p>
-      <p class="muted" id="descAvgPages"></p>
-    <canvas id="pageCountChart"></canvas>
-  </div>
 
         <div class="card full">
           <h2 id="lblProfile">Reading profile</h2>
@@ -1846,6 +1849,90 @@ descTopAuthorsPages: 'Il tuo autore più letto è {author} con {pages} pagine.',
     function chartAccent(){ return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); }
     function chartAccent2(){ return getComputedStyle(document.documentElement).getPropertyValue('--accent-2').trim(); }
 
+const AUTHOR_NATIONALITY_OVERRIDES = {
+  'Ivo Andrić': 'Bosnia ed Erzegovina',
+  'Chingiz Aitmatov': 'Kirghizistan',
+  'Antun Gustav Matoš': 'Croazia',
+  'Isaac Asimov': 'Stati Uniti',
+  'Nicolai Lilin': 'Italia',
+  'Giovanna Spendel': 'Russia',
+  'Alex Vella': 'Italia',
+  'Alessandro Seren Rosso': 'Italia',
+  'Dubravka Ugrešić': 'Croazia',
+  'Danilo Kiš': 'Serbia',
+  'Stephen King': 'Stati Uniti',
+  'Agatha Christie': 'Regno Unito',
+  'Haruki Murakami': 'Giappone',
+  'J.K. Rowling': 'Regno Unito',
+  'George Orwell': 'Regno Unito',
+  'Jane Austen': 'Regno Unito',
+  'Charles Dickens': 'Regno Unito',
+  'Mark Twain': 'Stati Uniti',
+  'Ernest Hemingway': 'Stati Uniti',
+  'F. Scott Fitzgerald': 'Stati Uniti',
+  'Gabriel García Márquez': 'Colombia',
+  'Franz Kafka': 'Repubblica Ceca',
+  'Fyodor Dostoevsky': 'Russia',
+  'Leo Tolstoy': 'Russia',
+  'Victor Hugo': 'Francia',
+  'Albert Camus': 'Francia',
+  'Umberto Eco': 'Italia',
+  'Italo Calvino': 'Italia',
+  'Elena Ferrante': 'Italia',
+  'Dan Brown': 'Stati Uniti',
+  'John Grisham': 'Stati Uniti',
+  'Michael Crichton': 'Stati Uniti',
+  'Arthur Conan Doyle': 'Regno Unito',
+  'J.R.R. Tolkien': 'Regno Unito',
+  'C.S. Lewis': 'Regno Unito',
+  'Roald Dahl': 'Regno Unito',
+  'Neil Gaiman': 'Regno Unito',
+  'Terry Pratchett': 'Regno Unito',
+  'George R.R. Martin': 'Stati Uniti',
+  'Suzanne Collins': 'Stati Uniti',
+  'Paulo Coelho': 'Brasile',
+  'Yukio Mishima': 'Giappone',
+  'Kazuo Ishiguro': 'Regno Unito',
+  'Toni Morrison': 'Stati Uniti',
+  'Margaret Atwood': 'Canada',
+  'Khaled Hosseini': 'Stati Uniti',
+  'Chimamanda Ngozi Adichie': 'Nigeria',
+  'Milan Kundera': 'Repubblica Ceca',
+  'Orhan Pamuk': 'Turchia',
+  'Salman Rushdie': 'Regno Unito',
+  'Virginia Woolf': 'Regno Unito',
+  'Oscar Wilde': 'Irlanda',
+  'James Joyce': 'Irlanda',
+  'Herman Melville': 'Stati Uniti',
+  'Homer': 'Grecia',
+  'William Shakespeare': 'Regno Unito',
+  'Miguel de Cervantes': 'Spagna',
+  'Marcel Proust': 'Francia',
+  'Thomas Mann': 'Germania',
+  'Hermann Hesse': 'Germania',
+  'Anne Frank': 'Germania'
+};
+
+function normalizeHistoricalCountry(name) {
+  const map = {
+    'Unione Sovietica': 'Russia',
+    'Russia sovietica': 'Russia',
+    'Impero russo': 'Russia',
+    'Regno d\'Italia': 'Italia',
+    'Regno Lombardo-Veneto': 'Italia',
+    'Regno Unito di Gran Bretagna e Irlanda': 'Regno Unito',
+    'Repubblica Socialista Federale di Jugoslavia': 'Serbia',
+    'Repubblica federale popolare di Jugoslavia': 'Serbia',
+    'antica Roma': 'Italia',
+    'Impero romano': 'Italia',
+    'dinastia Ming': 'Cina',
+    'Qi': 'Cina',
+    'Regno di Danimarca': 'Danimarca',
+    'Regno dei Paesi Bassi': 'Paesi Bassi'
+  };
+  return map[name] || name;
+}
+
 function normalizeCountryName(name) {
   const n = String(name || '').trim();
   if (!n) return null;
@@ -1913,7 +2000,7 @@ function normalizeCountryName(name) {
     'EMIRATI ARABI UNITI':'AE','UNITED ARAB EMIRATES':'AE',
     'ERITREA':'ER',
     'ESTONIA':'EE',
-        'ETIOPIA':'ET','ETHIOPIA':'ET',
+    'ETIOPIA':'ET','ETHIOPIA':'ET',
     'FIGI':'FJ','FIJI':'FJ',
     'FILIPPINE':'PH','PHILIPPINES':'PH',
     'GABON':'GA',
@@ -2004,12 +2091,11 @@ function getAuthorNationalityMap(books) {
   const counts = {};
   const seen = new Set();
   books.forEach(b => {
-    if (!b.author || !b.authorNationality) return;
+    if (!b.author || !b.authorNationalityISO) return;
     const key = b.author;
     if (seen.has(key)) return;
     seen.add(key);
-    const code = normalizeCountryName(b.authorNationality);
-    if (!code) return;
+    const code = b.authorNationalityISO;
     counts[code] = (counts[code] || 0) + 1;
   });
   return counts;
@@ -2070,6 +2156,21 @@ function renderNationalityMap(books) {
       node.onmouseleave = null;
     }
   });
+
+  const pathsByClass = svgRoot.querySelectorAll('path[class]');
+  pathsByClass.forEach(node => {
+    const className = node.getAttribute('class');
+    if (!className) return;
+    const code = normalizeCountryName(className);
+    if (code && counts[code]) {
+      node.style.fill = interpolateMapColor(counts[code], min, max);
+      attachTooltip(node, code, counts[code]);
+    } else {
+      node.style.fill = '#efe8d8';
+      node.onmousemove = null;
+      node.onmouseleave = null;
+    }
+  });
 }
 
 function t_dsAuthors() {
@@ -2118,7 +2219,7 @@ class RateLimiter {
     if (waitMs > 0) await new Promise(r => setTimeout(r, waitMs));
   }
 }
-const globalLimiter = new RateLimiter(120);
+const globalLimiter = new RateLimiter(350);
 const wikidataGetRaw = wikidataGet;
 wikidataGet = async function(params) {
   await globalLimiter.wait();
@@ -2189,6 +2290,12 @@ function claimValueIds(entity, property) {
   return entity.claims[property]
     .map(c => c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value && c.mainsnak.datavalue.value.id)
     .filter(Boolean);
+}
+
+function claimValueString(entity, property) {
+  if (!entity || !entity.claims || !entity.claims[property] || !entity.claims[property][0]) return null;
+  const snak = entity.claims[property][0].mainsnak;
+  return snak && snak.datavalue ? snak.datavalue.value : null;
 }
 
 function isHuman(entity) { return claimValueIds(entity, 'P31').includes('Q5'); }
@@ -2278,16 +2385,45 @@ async function resolveLabels(ids) {
   return labels;
 }
 
+async function resolveCountryISOCodes(ids) {
+  const isoMap = {};
+  const uniqueIds = [...new Set(ids)];
+  const chunks = [];
+  for (let i = 0; i < uniqueIds.length; i += 50) {
+    chunks.push(uniqueIds.slice(i, i + 50));
+  }
+  for (const chunk of chunks) {
+    if (chunk.length === 0) continue;
+    const entities = await getClaimsBatch(chunk);
+    for (const id of chunk) {
+      const iso = claimValueString(entities[id], 'P297');
+      if (iso) isoMap[id] = iso.toUpperCase();
+    }
+  }
+  return isoMap;
+}
+
 async function fetchNationalities(uniqueAuthors, onProgress) {
   const authorResult = {};
+  const overriddenAuthors = {};
+  const authorsToSearch = [];
+
+  uniqueAuthors.forEach(author => {
+    if (AUTHOR_NATIONALITY_OVERRIDES[author]) {
+      overriddenAuthors[author] = AUTHOR_NATIONALITY_OVERRIDES[author];
+    } else {
+      authorsToSearch.push(author);
+    }
+  });
+
   let done = 0;
   let cursor = 0;
-  const concurrency = 5;
+  const concurrency = 3;
 
   function nextAuthor() {
-    if (cursor >= uniqueAuthors.length) return null;
-    return uniqueAuthors[cursor++];
-  }
+  if (cursor >= authorsToSearch.length) return null;
+  return authorsToSearch[cursor++];
+}
 
   async function worker() {
     while (true) {
@@ -2299,7 +2435,7 @@ async function fetchNationalities(uniqueAuthors, onProgress) {
         authorResult[author] = { status: 'networkerror' };
       }
       done++;
-      if (onProgress) onProgress(Math.round((done / uniqueAuthors.length) * 55), `Ricerca autori... (${done}/${uniqueAuthors.length})`);
+      if (onProgress) onProgress(Math.round((done / authorsToSearch.length) * 55), `Ricerca autori... (${done}/${authorsToSearch.length})`);
     }
   }
   await Promise.all(Array.from({ length: concurrency }, worker));
@@ -2332,17 +2468,28 @@ async function fetchNationalities(uniqueAuthors, onProgress) {
     }
   }
 
-  const allCountryIds = Object.values(authorToCountryIds).flat();
-  const countryLabels = await resolveLabels(allCountryIds);
-  if (onProgress) onProgress(95, 'Quasi fatto...');
+ const allCountryIds = Object.values(authorToCountryIds).flat();
+const countryLabels = await resolveLabels(allCountryIds);
+const countryISOCodes = await resolveCountryISOCodes(allCountryIds);
+if (onProgress) onProgress(95, 'Quasi fatto...');
 
-  const authorToNationality = {};
-  for (const [author, ids] of Object.entries(authorToCountryIds)) {
-    const names = ids.map(id => countryLabels[id]).filter(Boolean);
-    if (names.length > 0) authorToNationality[author] = names[0];
+const authorToNationality = {};
+for (const [author, ids] of Object.entries(authorToCountryIds)) {
+  const names = ids.map(id => countryLabels[id]).filter(Boolean);
+  const isoCodes = ids.map(id => countryISOCodes[id]).filter(Boolean);
+  if (names.length > 0) {
+    const normalizedName = normalizeHistoricalCountry(names[0]);
+    const iso = normalizeCountryName(normalizedName) || isoCodes[0] || null;
+    authorToNationality[author] = { name: normalizedName, iso: iso };
   }
-  if (onProgress) onProgress(100, 'Completato.');
-  return authorToNationality;
+}
+
+for (const [author, countryName] of Object.entries(overriddenAuthors)) {
+  const iso = normalizeCountryName(countryName);
+  authorToNationality[author] = { name: countryName, iso: iso };
+}
+if (onProgress) onProgress(100, 'Completato.');
+return authorToNationality;
 }
 
     function setLanguage(lang) {
@@ -2515,9 +2662,16 @@ document.getElementById('btnYesNationality').onclick = async () => {
     modalProgressBar.style.width = pct + '%';
     modalStatus.textContent = msg;
   });
+
+  console.log('authorToNationality:', JSON.stringify(authorToNationality, null, 2));
+
   books.forEach(b => {
-    if (authorToNationality[b.author]) b.authorNationality = authorToNationality[b.author];
-  });
+  const info = authorToNationality[b.author];
+  if (info) {
+    b.authorNationality = info.name;
+    b.authorNationalityISO = info.iso;
+  }
+});
   modal.style.display = 'none';
   renderDashboard(books);
 };
