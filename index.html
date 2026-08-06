@@ -1611,7 +1611,10 @@
       <button class="btn" id="btnYesNationality">Yes, search</button>
       <button class="control" id="btnNoNationality">No, skip</button>
     </div>
-  </div>
+    <div id="modalDoneButtons" style="display:none; margin-top:18px;">
+  <button class="btn" id="btnOkNationality">OK</button>
+</div>
+</div>
 </div>
 
   <script>
@@ -1654,6 +1657,13 @@ descPublisher: 'Your most-read publisher is {publisher} with {count} works.',
 descStar: 'Most of your books are rated {star} stars.',
 descMonthRhythm: 'Your best all-time month is {month} with {count} books.',
 lblPageCount: 'Books By Page Count',
+lblNationalityMap: 'Author Nationalities',
+mapHint: 'Darker tiles indicate more authors from that country.',
+modalTitle: 'Search author nationalities?',
+btnYesNationality: 'Yes, search',
+btnNoNationality: 'No, skip',
+btnOkNationality: 'OK',
+modalDoneText: 'Found {found} out of {total} authors.',
 descPageCount: 'Most of your books are between {range} pages.',
 descAvgPages: 'Average page count: {avg}',
 descTopAuthorsBooks: 'Your most read author is {author} with {count} books.',
@@ -1762,7 +1772,14 @@ descPublisher: 'Il tuo editore più letto è {publisher} con {count} opere.',
 descStar: 'La maggior parte dei tuoi libri ha {star} stelle.',
 descMonthRhythm: 'Il tuo mese migliore di sempre è {month} con {count} libri.',
 lblPageCount: 'Libri per numero di pagine',
-descPageCount: 'La maggior parte dei tuoi libri ha tra {range} pagine.',
+lblNationalityMap: 'Nazionalità degli autori',
+mapHint: 'I riquadri più scuri indicano più autori da quel paese.',
+modalTitle: 'Cercare le nazionalità degli autori?',
+btnYesNationality: 'Sì, cerca',
+btnNoNationality: 'No, salta',
+btnOkNationality: 'OK',
+modalDoneText: 'Trovati {found} su {total} autori unici totali.',
+descPageCount: 'La maggior parte dei tuoi libri ha una lunghezza di {range} pagine.',
 descAvgPages: 'Media pagine per libro: {avg}',
 descTopAuthorsBooks: 'Il tuo autore più letto è {author} con {count} libri.',
 descTopAuthorsPages: 'Il tuo autore più letto è {author} con {pages} pagine.',
@@ -2499,8 +2516,12 @@ return authorToNationality;
       [
         'eyebrow','mainTitle','subtitle','guideTitle','btnUpload','placeholderText','calloutTitle','calloutText',
         'preview1Label','preview2Label','preview3Label','preview4Label','kpiBooksLabel','kpiBooksNote','kpiPagesLabel','kpiPagesNote',
-        'kpiAvgLabel','kpiAvgNote','kpiBestYearLabel','kpiBestYearNote','kpiAuthorsLabel','kpiAuthorsNote','lblPagesTimeline','lblBooksTimeline','lblPubYearChart','lblMonthRhythm','lblMonthRhythm',
-'lblPageCount','lblDecadeChart','lblPublisherChart',
+        'kpiAvgLabel','kpiAvgNote','kpiBestYearLabel','kpiBestYearNote','kpiAuthorsLabel','kpiAuthorsNote','lblPagesTimeline','lblBooksTimeline','lblPubYearChart',
+        'lblMonthRhythm',
+        'lblPageCount',
+        'lblNationalityMap',
+        'mapHint',
+        'lblDecadeChart','lblPublisherChart',
         'lblStarChart','lblProfile','profile1Label','profile2Label','profile3Label','profile4Label','lblTopAuthorsBooks',
         'thAuthorBooks','thBooksReg','lblTopAuthorsPages','thAuthorPages','thTotalPages','lblHighestRatedAuthors','thAuthorRated',
         'thAvgRating','thBooksRead','lblShelvesTable','thShelfCat','thAvgRatingShelf','thBooksReadShelf','lblMostUsedShelves',
@@ -2532,6 +2553,8 @@ return authorToNationality;
       const file = e.target.files[0];
       if (!file) return;
       e.target.blur();
+      console.log('file selezionato:', file.name);
+      
       const reader = new FileReader();
       reader.onload = function(evt) {
         const banner = document.getElementById('error-banner');
@@ -2645,16 +2668,8 @@ const modalProgressBar = document.getElementById('modalProgressBar');
 const modalStatus = document.getElementById('modalStatus');
 
 const estimatedMinutes = Math.max(1, Math.round(uniqueAuthorNames.length / 40));
-modalDesc.textContent = `${uniqueAuthorNames.length} unique authors found. Searching nationalities may take about ${estimatedMinutes} minute(s), with roughly 80% accuracy.`;
-modal.style.display = 'flex';
-modalButtons.style.display = 'flex';
-modalProgressWrap.style.display = 'none';
-
-document.getElementById('btnNoNationality').onclick = () => {
-  modal.style.display = 'none';
-  renderDashboard(books);
-};
-
+const t = langs[currentLang];
+document.getElementById('modalTitle').textContent = t.modalTitle;
 document.getElementById('btnYesNationality').onclick = async () => {
   modalButtons.style.display = 'none';
   modalProgressWrap.style.display = 'block';
@@ -2662,18 +2677,22 @@ document.getElementById('btnYesNationality').onclick = async () => {
     modalProgressBar.style.width = pct + '%';
     modalStatus.textContent = msg;
   });
-
-  console.log('authorToNationality:', JSON.stringify(authorToNationality, null, 2));
-
   books.forEach(b => {
-  const info = authorToNationality[b.author];
-  if (info) {
-    b.authorNationality = info.name;
-    b.authorNationalityISO = info.iso;
-  }
-});
-  modal.style.display = 'none';
-  renderDashboard(books);
+    const info = authorToNationality[b.author];
+    if (info) {
+      b.authorNationality = info.name;
+      b.authorNationalityISO = info.iso;
+    }
+  });
+  const found = Object.keys(authorToNationality).length;
+  const total = uniqueAuthorNames.length;
+  modalProgressWrap.style.display = 'none';
+  modalDesc.textContent = t.modalDoneText.replace('{found}', found).replace('{total}', total);
+  document.getElementById('modalDoneButtons').style.display = 'block';
+  document.getElementById('btnOkNationality').onclick = () => {
+    modal.style.display = 'none';
+    renderDashboard(books);
+  };
 };
 
     }
