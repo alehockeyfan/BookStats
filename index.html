@@ -1778,8 +1778,8 @@ modalTitle: 'Cercare le nazionalità degli autori?',
 btnYesNationality: 'Sì, cerca',
 btnNoNationality: 'No, salta',
 btnOkNationality: 'OK',
-modalDoneText: 'Trovati {found} su {total} autori unici totali.',
-descPageCount: 'La maggior parte dei tuoi libri ha una lunghezza di {range} pagine.',
+modalDoneText: 'Trovati {found} autori su {total}.',
+descPageCount: 'La maggior parte dei tuoi libri ha tra {range} pagine.',
 descAvgPages: 'Media pagine per libro: {avg}',
 descTopAuthorsBooks: 'Il tuo autore più letto è {author} con {count} libri.',
 descTopAuthorsPages: 'Il tuo autore più letto è {author} con {pages} pagine.',
@@ -1872,13 +1872,32 @@ const AUTHOR_NATIONALITY_OVERRIDES = {
   'Antun Gustav Matoš': 'Croazia',
   'Isaac Asimov': 'Stati Uniti',
   'Nicolai Lilin': 'Italia',
+  'Aurora Marsotto': 'Italia',
+  'Rita Nardi': 'Italia',
+  'Danielle Star': 'Italia',
   'Giovanna Spendel': 'Russia',
   'Alex Vella': 'Italia',
   'Alessandro Seren Rosso': 'Italia',
+  'Barbara Parutto': 'Italia',
+  'Serena Girivetto': 'Italia',
+  'Serena Dritsas': 'Italia',
+  'Andreea Sipatchin': 'Italia',
+  'Carrie Leighton': 'Italia',
+  'Victor Diamandis': 'Italia',
+  'E.C. Bröwa': 'Italia',
+  'Nimsdai Purja': 'Nepal',
+  'Leopoldo Mendívil López': 'Messico',
+  'Kota Sannomiya': 'Giappone',
+  'Chloe Walsh': 'Irlanda',
+  'A.G. Riddle': 'Stati Uniti',
+  'Kelly Oram': 'Stati Uniti',
+  'Melissa Storm': 'Stati Uniti',
+  'Molly Fitz': 'Stati Uniti',
   'Dubravka Ugrešić': 'Croazia',
   'Danilo Kiš': 'Serbia',
   'Stephen King': 'Stati Uniti',
   'Agatha Christie': 'Regno Unito',
+  'Sue Bentley': 'Regno Unito',
   'Haruki Murakami': 'Giappone',
   'J.K. Rowling': 'Regno Unito',
   'George Orwell': 'Regno Unito',
@@ -1894,7 +1913,9 @@ const AUTHOR_NATIONALITY_OVERRIDES = {
   'Victor Hugo': 'Francia',
   'Albert Camus': 'Francia',
   'Umberto Eco': 'Italia',
+  'Laura Rocca': 'Italia',
   'Italo Calvino': 'Italia',
+  'Rokia': 'Italia',
   'Elena Ferrante': 'Italia',
   'Dan Brown': 'Stati Uniti',
   'John Grisham': 'Stati Uniti',
@@ -1921,13 +1942,28 @@ const AUTHOR_NATIONALITY_OVERRIDES = {
   'Oscar Wilde': 'Irlanda',
   'James Joyce': 'Irlanda',
   'Herman Melville': 'Stati Uniti',
+  'Walt Disney Company': 'Stati Uniti',
   'Homer': 'Grecia',
   'William Shakespeare': 'Regno Unito',
   'Miguel de Cervantes': 'Spagna',
   'Marcel Proust': 'Francia',
   'Thomas Mann': 'Germania',
   'Hermann Hesse': 'Germania',
-  'Anne Frank': 'Germania'
+  'Anne Frank': 'Germania',
+  'Masal Pas Bagdadi': 'Siria',
+  'Sonngard Böhlke': 'Germania',
+  'Paul Vlitos': 'Regno Unito',
+  'Pottermore Publishing': 'Regno Unito',
+  'Sky Corgan': 'Stati Uniti',
+  'Miroslav Bouchner': 'Repubblica Ceca',
+  'Kate Kerrigan': 'Stati Uniti',
+  'Sumaya Abdel Qader': 'Italia',
+  'Plutarco': 'Grecia',
+  'Plutarch': 'Grecia',
+  'Platone': 'Grecia',
+  'Ting-Kuo Wang': 'Taiwan',
+  'Dolores García Ruiz': 'Spagna',
+  'Cristina Obber': 'Italia',
 };
 
 function normalizeHistoricalCountry(name) {
@@ -2553,8 +2589,6 @@ return authorToNationality;
       const file = e.target.files[0];
       if (!file) return;
       e.target.blur();
-      console.log('file selezionato:', file.name);
-      
       const reader = new FileReader();
       reader.onload = function(evt) {
         const banner = document.getElementById('error-banner');
@@ -2670,6 +2704,18 @@ const modalStatus = document.getElementById('modalStatus');
 const estimatedMinutes = Math.max(1, Math.round(uniqueAuthorNames.length / 40));
 const t = langs[currentLang];
 document.getElementById('modalTitle').textContent = t.modalTitle;
+document.getElementById('btnYesNationality').textContent = t.btnYesNationality;
+document.getElementById('btnNoNationality').textContent = t.btnNoNationality;
+modalDesc.textContent = `${uniqueAuthorNames.length} unique authors found. Searching nationalities may take about ${estimatedMinutes} minute(s), with roughly 80% accuracy.`;
+modal.style.display = 'flex';
+modalButtons.style.display = 'flex';
+modalProgressWrap.style.display = 'none';
+
+document.getElementById('btnNoNationality').onclick = () => {
+  modal.style.display = 'none';
+  renderDashboard(books);
+};
+
 document.getElementById('btnYesNationality').onclick = async () => {
   modalButtons.style.display = 'none';
   modalProgressWrap.style.display = 'block';
