@@ -91,6 +91,7 @@
       color: var(--text);
       font-weight: 600;
       padding: 0 14px;
+      cursor: pointer;
     }
     .control { min-width: 150px; }
     .theme-btn, .btn {
@@ -274,6 +275,39 @@
       padding: 2px 6px;
     }
     canvas { max-height: 320px; }
+.year-details {
+  margin-top: 24px;
+}
+
+.details-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.details-header h2 {
+  margin: 0;
+}
+
+.details-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 780px) {
+  .details-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .details-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
     .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5);
   display: flex; align-items: center; justify-content: center; z-index: 10000;
@@ -1605,6 +1639,53 @@
         </div>
       </section>
 
+<section id="yearDetails" class="panel year-details" style="display: none;">
+  <div class="details-header">
+    <button id="backToDashboard" class="control" type="button">
+      ← <span id="backLabel">Back to dashboard</span>
+    </button>
+
+    <h2 id="yearDetailsTitle">Reading details</h2>
+  </div>
+
+  <div class="details-kpis">
+    <div class="mini-card">
+      <div class="label" id="detailsBooksLabel">Books</div>
+      <div class="value" id="detailsBooks">—</div>
+    </div>
+
+    <div class="mini-card">
+      <div class="label" id="detailsPagesLabel">Pages</div>
+      <div class="value" id="detailsPages">—</div>
+    </div>
+
+    <div class="mini-card">
+      <div class="label" id="detailsRatingLabel">Average rating</div>
+      <div class="value" id="detailsRating">—</div>
+    </div>
+
+    <div class="mini-card">
+      <div class="label" id="detailsFiveStarsLabel">5-star books</div>
+      <div class="value" id="detailsFiveStars">—</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="yearDetailsTable">
+      <thead>
+        <tr>
+          <th id="detailsTitleHeader">Title</th>
+          <th id="detailsAuthorHeader">Author</th>
+          <th id="detailsRatingHeader">Rating</th>
+          <th id="detailsPagesHeader">Pages</th>
+          <th id="detailsShelfHeader">Shelves</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
       <section id="placeholder" class="panel placeholder">
         <p id="placeholderText">Load your Goodreads export to unlock the dashboard.</p>
       </section>
@@ -1744,6 +1825,16 @@ descTopAuthorsPages: 'Your most read author is {author} with {pages} pages.',
         yearSuffix: "rated",
         activeYearLabel: "books",
         streakSuffix: "years",
+        backLabel: "Back to dashboard",
+        detailsBooksLabel: "Books",
+        detailsPagesLabel: "Pages",
+        detailsRatingLabel: "Average rating",
+        detailsFiveStarsLabel: "5-star books",
+        detailsTitleHeader: "Title",
+        detailsAuthorHeader: "Author",
+        detailsRatingHeader: "Rating",
+        detailsPagesHeader: "Pages",
+        detailsShelfHeader: "Shelves",
         noData: "—"
       },
       it: {
@@ -1791,7 +1882,7 @@ btnYesNationality: 'Sì, cerca',
 btnNoNationality: 'No, salta',
 btnOkNationality: 'OK',
 modalDoneText: 'Trovati {found} autori su {total}.',
-descPageCount: 'La maggior parte dei tuoi libri ha tra {range} pagine.',
+descPageCount: 'La maggioranza dei tuoi libri è di {range} pagine.',
 descAvgPages: 'Media pagine per libro: {avg}',
 descTopAuthorsBooks: 'Il tuo autore più letto è {author} con {count} libri.',
 descTopAuthorsPages: 'Il tuo autore più letto è {author} con {pages} pagine.',
@@ -1858,6 +1949,16 @@ descTopAuthorsPages: 'Il tuo autore più letto è {author} con {pages} pagine.',
         yearSuffix: "votati",
         activeYearLabel: "libri",
         streakSuffix: "anni",
+        backLabel: "Torna alla dashboard",
+        detailsBooksLabel: "Libri",
+        detailsPagesLabel: "Pagine",
+        detailsRatingLabel: "Valutazione media",
+        detailsFiveStarsLabel: "Libri con valutazione 5 stelle",
+        detailsTitleHeader: "Titolo",
+        detailsAuthorHeader: "Autore",
+        detailsRatingHeader: "Valutazione",
+        detailsPagesHeader: "Pagine",
+        detailsShelfHeader: "Scaffali",
         noData: "—"
       }
     };
@@ -1901,6 +2002,7 @@ const AUTHOR_NATIONALITY_OVERRIDES = {
   'Paola Capriolo': 'Italia',
   'Nimsdai Purja': 'Nepal',
   'Leopoldo Mendívil López': 'Messico',
+  'Isabella Lattes Coifmann': 'Italia',
   'Kota Sannomiya': 'Giappone',
   'Chloe Walsh': 'Irlanda',
   'A.G. Riddle': 'Stati Uniti',
@@ -2770,7 +2872,273 @@ document.getElementById('btnYesNationality').onclick = async () => {
 
     }
 
-    function destroyCharts() {
+    function renderYearDetails(year) {
+  const yearDetails = document.getElementById('yearDetails');
+  const dashboard = document.getElementById('dashboardContent');
+  const kpiGrid = document.getElementById('kpiGrid');
+  const instructions = document.getElementById('instructionsWrap');
+  const placeholder = document.getElementById('placeholder');
+
+  const booksOfYear = parsedBooks.filter(function(book) {
+    return book.readYear === year;
+  });
+
+  if (!booksOfYear.length) {
+    console.warn('Nessun libro trovato per l’anno ' + year);
+    return;
+  }
+
+  const ratedBooks = booksOfYear.filter(function(book) {
+    return book.rating > 0;
+  });
+
+  const totalPages = booksOfYear.reduce(function(total, book) {
+    return total + (book.pages || 0);
+  }, 0);
+
+  const averageRating = ratedBooks.length
+    ? ratedBooks.reduce(function(total, book) {
+        return total + book.rating;
+      }, 0) / ratedBooks.length
+    : 0;
+
+  const fiveStarBooks = booksOfYear.filter(function(book) {
+    return book.rating === 5;
+  }).length;
+
+    const t = langs[currentLang];
+
+  document.getElementById('backLabel').innerText =
+    t.backLabel;
+
+  document.getElementById('detailsBooksLabel').innerText =
+    t.detailsBooksLabel;
+
+  document.getElementById('detailsPagesLabel').innerText =
+    t.detailsPagesLabel;
+
+  document.getElementById('detailsRatingLabel').innerText =
+    t.detailsRatingLabel;
+
+  document.getElementById('detailsFiveStarsLabel').innerText =
+    t.detailsFiveStarsLabel;
+
+  document.getElementById('detailsTitleHeader').innerText =
+    t.detailsTitleHeader;
+
+  document.getElementById('detailsAuthorHeader').innerText =
+    t.detailsAuthorHeader;
+
+  document.getElementById('detailsRatingHeader').innerText =
+    t.detailsRatingHeader;
+
+  document.getElementById('detailsPagesHeader').innerText =
+    t.detailsPagesHeader;
+
+  document.getElementById('detailsShelfHeader').innerText =
+    t.detailsShelfHeader;
+
+  document.getElementById('yearDetailsTitle').innerText =
+    currentLang === 'it'
+      ? 'Dettaglio letture — ' + year
+      : 'Reading details — ' + year;
+
+  document.getElementById('backLabel').innerText =
+    currentLang === 'it'
+      ? 'Torna alla dashboard'
+      : 'Back to dashboard';
+
+  document.getElementById('detailsBooks').innerText =
+    formatNum(booksOfYear.length);
+
+  document.getElementById('detailsPages').innerText =
+    formatNum(totalPages);
+
+  document.getElementById('detailsRating').innerText =
+    ratedBooks.length
+      ? formatNum(averageRating, 2) + ' / 5'
+      : '—';
+
+  document.getElementById('detailsFiveStars').innerText =
+    formatNum(fiveStarBooks);
+
+  const detailsTableBody =
+    document.querySelector('#yearDetailsTable tbody');
+
+  detailsTableBody.innerHTML = booksOfYear
+    .slice()
+    .sort(function(a, b) {
+      return a.title.localeCompare(
+        b.title,
+        currentLang === 'it' ? 'it' : 'en'
+      );
+    })
+    .map(function(book) {
+      const shelves = book.shelves.length
+        ? book.shelves.map(function(shelf) {
+            return '<span class="badge">' +
+              esc(shelf) +
+              '</span>';
+          }).join(' ')
+        : '—';
+
+      return `
+        <tr>
+          <td>
+            <strong>${esc(book.title)}</strong>
+          </td>
+
+          <td>
+            <span class="badge">
+              ${esc(book.author)}
+            </span>
+          </td>
+
+          <td>
+            ${
+              book.rating > 0
+                ? formatNum(book.rating, 1) + ' / 5'
+                : '—'
+            }
+          </td>
+
+          <td>
+            ${
+              book.pages > 0
+                ? formatNum(book.pages) + ' ' + t.pagesSuffix
+                : '—'
+            }
+          </td>
+
+          <td>${shelves}</td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  dashboard.style.display = 'none';
+  kpiGrid.style.display = 'none';
+  instructions.style.display = 'none';
+  placeholder.style.display = 'none';
+  yearDetails.style.display = 'block';
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+function renderRatingDetails(rating) {
+  const yearDetails = document.getElementById('yearDetails');
+  const dashboard = document.getElementById('dashboardContent');
+  const kpiGrid = document.getElementById('kpiGrid');
+  const instructions = document.getElementById('instructionsWrap');
+  const placeholder = document.getElementById('placeholder');
+
+        const booksWithRating = parsedBooks.filter(function(book) {
+    return Number(book.rating) === Number(rating);
+  });
+
+  if (!booksWithRating.length) {
+    console.warn(
+      'Nessun libro trovato con valutazione ' + rating
+    );
+    return;
+  }
+
+  const totalPages = booksWithRating.reduce(function(total, book) {
+    return total + (book.pages || 0);
+  }, 0);
+
+  const fiveStarBooks = booksWithRating.filter(function(book) {
+    return book.rating === 5;
+  }).length;
+
+  const t = langs[currentLang];
+
+  document.getElementById('yearDetailsTitle').innerText =
+    currentLang === 'it'
+      ? 'Libri valutati ' + rating + ' stelle'
+      : 'Books rated ' + rating + ' stars';
+
+  document.getElementById('backLabel').innerText =
+    t.backLabel;
+
+  document.getElementById('detailsBooks').innerText =
+    formatNum(booksWithRating.length);
+
+  document.getElementById('detailsPages').innerText =
+    formatNum(totalPages);
+
+  document.getElementById('detailsRating').innerText =
+    formatNum(rating, 1) + ' / 5';
+
+  document.getElementById('detailsFiveStars').innerText =
+    formatNum(fiveStarBooks);
+
+  const detailsTableBody =
+    document.querySelector('#yearDetailsTable tbody');
+
+  detailsTableBody.innerHTML = booksWithRating
+    .slice()
+    .sort(function(a, b) {
+      return a.title.localeCompare(
+        b.title,
+        currentLang === 'it' ? 'it' : 'en'
+      );
+    })
+    .map(function(book) {
+      const shelves = book.shelves.length
+        ? book.shelves.map(function(shelf) {
+            return '<span class="badge">' +
+              esc(shelf) +
+              '</span>';
+          }).join(' ')
+        : '—';
+
+      return `
+        <tr>
+          <td>
+            <strong>${esc(book.title)}</strong>
+          </td>
+
+          <td>
+            <span class="badge">
+              ${esc(book.author)}
+            </span>
+          </td>
+
+          <td>
+            ${formatNum(book.rating, 1)} / 5
+          </td>
+
+          <td>
+            ${
+              book.pages > 0
+                ? formatNum(book.pages) + ' ' + t.pagesSuffix
+                : '—'
+            }
+          </td>
+
+          <td>${shelves}</td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  dashboard.style.display = 'none';
+  kpiGrid.style.display = 'none';
+  instructions.style.display = 'none';
+  placeholder.style.display = 'none';
+  yearDetails.style.display = 'block';
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+function destroyCharts() {
       Object.keys(charts).forEach(key => {
         if (charts[key]) charts[key].destroy();
       });
@@ -2851,7 +3219,10 @@ document.getElementById('btnYesNationality').onclick = async () => {
 }
         if (b.year && b.rating > 0) {
           const decade = Math.floor(b.year / 10) * 10;
-          const label = decade + 's';
+          const label = currentLang === 'it'
+            ? String(decade)
+            : `${decade}s`;
+
           if (!decadeGroups[label]) decadeGroups[label] = { totalRating: 0, count: 0 };
           decadeGroups[label].totalRating += b.rating;
           decadeGroups[label].count += 1;
@@ -3046,7 +3417,28 @@ document.getElementById('descTopAuthorsPages').innerText = authorsPagesSorted.le
             pointRadius: 3
           }]
         },
-        options: lineOpts
+                options: {
+          ...lineOpts,
+
+          onClick: function(event, elements) {
+            if (!elements.length) return;
+
+            const clickedIndex = elements[0].index;
+            const selectedYear = Number(
+              timelineYears[clickedIndex]
+            );
+
+            window.location.hash =
+              `year=${selectedYear}`;
+
+            renderYearDetails(selectedYear);
+          },
+
+          onHover: function(event, elements) {
+            event.native.target.style.cursor =
+              elements.length ? 'pointer' : 'default';
+          }
+        }
       });
       charts.booksTimeline = new Chart(document.getElementById('booksTimelineChart'), {
         type: 'bar',
@@ -3055,12 +3447,35 @@ document.getElementById('descTopAuthorsPages').innerText = authorsPagesSorted.le
           datasets: [{
             label: t.dsBooks,
             data: timelineYears.map(y => timelineData[y].books),
-            backgroundColor: shadeByValue(timelineYears.map(y => timelineData[y].books)),
+            backgroundColor: shadeByValue(
+              timelineYears.map(y => timelineData[y].books)
+            ),
             borderRadius: 8
           }]
         },
-        options: barOpts
+        options: {
+          ...barOpts,
+
+          onClick: function(event, elements) {
+            if (!elements.length) return;
+
+            const clickedIndex = elements[0].index;
+            
+            const selectedYear = Number(
+              timelineYears[clickedIndex]
+            );
+
+            window.location.hash = `year=${selectedYear}`;
+            renderYearDetails(selectedYear);
+          },
+
+          onHover: function(event, elements) {
+            event.native.target.style.cursor =
+              elements.length ? 'pointer' : 'default';
+          }
+        }
       });
+
       const decadeOpts = baseChartOptions();
       decadeOpts.indexAxis = 'y';
       decadeOpts.scales.x.min = minDecadeAvg;
@@ -3172,7 +3587,27 @@ charts.publisher = new Chart(document.getElementById('publisherChart'), {
             borderRadius: 8
           }]
         },
-        options: baseChartOptions()
+                options: {
+          ...baseChartOptions(),
+
+          onClick: function(event, elements) {
+            if (!elements.length) return;
+
+            const clickedIndex = elements[0].index;
+            const ratingValues = [5, 4, 3, 2, 1];
+            const selectedRating = ratingValues[clickedIndex];
+
+            window.location.hash =
+              `rating=${selectedRating}`;
+
+            renderRatingDetails(selectedRating);
+          },
+
+          onHover: function(event, elements) {
+            event.native.target.style.cursor =
+              elements.length ? 'pointer' : 'default';
+          }
+        }
       });
 
       const renderRows = (selector, rows) => {
@@ -3233,7 +3668,31 @@ renderRows('#favoritesTable tbody',
 );
 renderNationalityMap(books);
     }
-    setLanguage('en');
+
+    document
+  .getElementById('backToDashboard')
+  .addEventListener('click', function() {
+    window.location.hash = '';
+
+    document.getElementById('yearDetails').style.display =
+      'none';
+
+    document.getElementById('dashboardContent').style.display =
+      'grid';
+
+    document.getElementById('kpiGrid').style.display =
+      'grid';
+
+    document.getElementById('instructionsWrap').style.display =
+      'none';
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+
+setLanguage('en');
   </script>
 </body>
 </html>
