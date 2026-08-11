@@ -245,6 +245,15 @@
       font-weight: 600;
       font-size: 12px;
     }
+    .author-link {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.author-link:hover {
+  background: var(--accent);
+  color: var(--text);
+}
     .muted { color: var(--muted); }
     .mini-grid {
       display: grid;
@@ -275,6 +284,18 @@
       padding: 2px 6px;
     }
     canvas { max-height: 320px; }
+
+    #backToDashboard {
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+#backToDashboard:hover {
+  background: var(--accent);
+  color: #1f2933;
+}
+
 .year-details {
   margin-top: 24px;
 }
@@ -3138,6 +3159,931 @@ function renderRatingDetails(rating) {
   });
 }
 
+function renderDecadeDetails(decade) {
+  const yearDetails =
+    document.getElementById('yearDetails');
+
+  const dashboard =
+    document.getElementById('dashboardContent');
+
+  const kpiGrid =
+    document.getElementById('kpiGrid');
+
+  const instructions =
+    document.getElementById('instructionsWrap');
+
+  const placeholder =
+    document.getElementById('placeholder');
+
+  const booksOfDecade =
+    parsedBooks.filter(function(book) {
+      return book.year &&
+        Math.floor(Number(book.year) / 10) * 10 === decade &&
+        Number(book.rating) > 0;
+    });
+
+  if (!booksOfDecade.length) {
+    console.warn(
+      'Nessun libro trovato per il decennio ' + decade
+    );
+    return;
+  }
+
+  const ratedBooks = booksOfDecade.filter(function(book) {
+    return Number(book.rating) > 0;
+  });
+
+  const totalPages =
+    booksOfDecade.reduce(function(total, book) {
+      return total + (book.pages || 0);
+    }, 0);
+
+  const averageRating =
+    ratedBooks.length
+      ? ratedBooks.reduce(function(total, book) {
+          return total + Number(book.rating);
+        }, 0) / ratedBooks.length
+      : 0;
+
+  const fiveStarBooks =
+    booksOfDecade.filter(function(book) {
+      return Number(book.rating) === 5;
+    }).length;
+
+  const t = langs[currentLang];
+
+  const decadeLabel =
+    currentLang === 'it'
+      ? String(decade)
+      : decade + 's';
+
+  document.getElementById('yearDetailsTitle').innerText =
+    currentLang === 'it'
+      ? 'Libri pubblicati negli anni ' + decadeLabel
+      : 'Books published in the ' + decadeLabel;
+
+  document.getElementById('backLabel').innerText =
+    t.backLabel;
+
+  document.getElementById('detailsBooksLabel').innerText =
+    t.detailsBooksLabel;
+
+  document.getElementById('detailsPagesLabel').innerText =
+    t.detailsPagesLabel;
+
+  document.getElementById('detailsRatingLabel').innerText =
+    t.detailsRatingLabel;
+
+  document.getElementById('detailsFiveStarsLabel').innerText =
+    t.detailsFiveStarsLabel;
+
+  document.getElementById('detailsTitleHeader').innerText =
+    t.detailsTitleHeader;
+
+  document.getElementById('detailsAuthorHeader').innerText =
+    t.detailsAuthorHeader;
+
+  document.getElementById('detailsRatingHeader').innerText =
+    t.detailsRatingHeader;
+
+  document.getElementById('detailsPagesHeader').innerText =
+    t.detailsPagesHeader;
+
+  document.getElementById('detailsShelfHeader').innerText =
+    t.detailsShelfHeader;
+
+  document.getElementById('detailsBooks').innerText =
+    formatNum(booksOfDecade.length);
+
+  document.getElementById('detailsPages').innerText =
+    formatNum(totalPages);
+
+  document.getElementById('detailsRating').innerText =
+    formatNum(averageRating, 2) + ' / 5';
+
+  document.getElementById('detailsFiveStars').innerText =
+    formatNum(fiveStarBooks);
+
+  const detailsTableBody =
+    document.querySelector('#yearDetailsTable tbody');
+
+  detailsTableBody.innerHTML =
+    booksOfDecade
+      .slice()
+      .sort(function(a, b) {
+        return a.title.localeCompare(
+          b.title,
+          currentLang === 'it' ? 'it' : 'en'
+        );
+      })
+      .map(function(book) {
+        const shelves =
+          Array.isArray(book.shelves) &&
+          book.shelves.length
+            ? book.shelves.map(function(shelf) {
+                return '<span class="badge">' +
+                  esc(shelf) +
+                  '</span>';
+              }).join(' ')
+            : '—';
+
+        return `
+          <tr>
+            <td>
+              <strong>${esc(book.title)}</strong>
+            </td>
+
+            <td>
+              <span class="badge">
+                ${esc(book.author)}
+              </span>
+            </td>
+
+            <td>
+              ${formatNum(Number(book.rating), 1)} / 5
+            </td>
+
+            <td>
+              ${
+                book.pages > 0
+                  ? formatNum(book.pages) + ' ' + t.pagesSuffix
+                  : '—'
+              }
+            </td>
+
+            <td>${shelves}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+  dashboard.style.display =
+    'none';
+
+  kpiGrid.style.display =
+    'none';
+
+  instructions.style.display =
+    'none';
+
+  placeholder.style.display =
+    'none';
+
+  yearDetails.style.display =
+    'block';
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+function renderPublisherDetails(publisher) {
+  const yearDetails =
+    document.getElementById('yearDetails');
+
+  const dashboard =
+    document.getElementById('dashboardContent');
+
+  const kpiGrid =
+    document.getElementById('kpiGrid');
+
+  const instructions =
+    document.getElementById('instructionsWrap');
+
+  const placeholder =
+    document.getElementById('placeholder');
+
+  const booksOfPublisher =
+    parsedBooks.filter(function(book) {
+      return String(book.publisher || '').trim() === publisher;
+    });
+
+  if (!booksOfPublisher.length) {
+    console.warn(
+      'Nessun libro trovato per l’editore: ' + publisher
+    );
+    return;
+  }
+
+  const ratedBooks =
+    booksOfPublisher.filter(function(book) {
+      return Number(book.rating) > 0;
+    });
+
+  const totalPages =
+    booksOfPublisher.reduce(function(total, book) {
+      return total + (book.pages || 0);
+    }, 0);
+
+  const averageRating =
+    ratedBooks.length
+      ? ratedBooks.reduce(function(total, book) {
+          return total + Number(book.rating);
+        }, 0) / ratedBooks.length
+      : 0;
+
+  const fiveStarBooks =
+    booksOfPublisher.filter(function(book) {
+      return Number(book.rating) === 5;
+    }).length;
+
+  const t = langs[currentLang];
+
+  document.getElementById('yearDetailsTitle').innerText =
+    currentLang === 'it'
+      ? 'Libri pubblicati da ' + publisher
+      : 'Books published by ' + publisher;
+
+  document.getElementById('backLabel').innerText =
+    t.backLabel;
+
+  document.getElementById('detailsBooksLabel').innerText =
+    t.detailsBooksLabel;
+
+  document.getElementById('detailsPagesLabel').innerText =
+    t.detailsPagesLabel;
+
+  document.getElementById('detailsRatingLabel').innerText =
+    t.detailsRatingLabel;
+
+  document.getElementById('detailsFiveStarsLabel').innerText =
+    t.detailsFiveStarsLabel;
+
+  document.getElementById('detailsTitleHeader').innerText =
+    t.detailsTitleHeader;
+
+  document.getElementById('detailsAuthorHeader').innerText =
+    t.detailsAuthorHeader;
+
+  document.getElementById('detailsRatingHeader').innerText =
+    t.detailsRatingHeader;
+
+  document.getElementById('detailsPagesHeader').innerText =
+    t.detailsPagesHeader;
+
+  document.getElementById('detailsShelfHeader').innerText =
+    t.detailsShelfHeader;
+
+  document.getElementById('detailsBooks').innerText =
+    formatNum(booksOfPublisher.length);
+
+  document.getElementById('detailsPages').innerText =
+    formatNum(totalPages);
+
+  document.getElementById('detailsRating').innerText =
+    ratedBooks.length
+      ? formatNum(averageRating, 2) + ' / 5'
+      : '—';
+
+  document.getElementById('detailsFiveStars').innerText =
+    formatNum(fiveStarBooks);
+
+  const detailsTableBody =
+    document.querySelector('#yearDetailsTable tbody');
+
+  detailsTableBody.innerHTML =
+    booksOfPublisher
+      .slice()
+      .sort(function(a, b) {
+        return a.title.localeCompare(
+          b.title,
+          currentLang === 'it' ? 'it' : 'en'
+        );
+      })
+      .map(function(book) {
+        const shelves =
+          Array.isArray(book.shelves) &&
+          book.shelves.length
+            ? book.shelves.map(function(shelf) {
+                return '<span class="badge">' +
+                  esc(shelf) +
+                  '</span>';
+              }).join(' ')
+            : '—';
+
+        return `
+          <tr>
+            <td>
+              <strong>${esc(book.title)}</strong>
+            </td>
+
+            <td>
+              <span class="badge">
+                ${esc(book.author)}
+              </span>
+            </td>
+
+            <td>
+              ${
+                Number(book.rating) > 0
+                  ? formatNum(Number(book.rating), 1) + ' / 5'
+                  : '—'
+              }
+            </td>
+
+            <td>
+              ${
+                book.pages > 0
+                  ? formatNum(book.pages) + ' ' + t.pagesSuffix
+                  : '—'
+              }
+            </td>
+
+            <td>${shelves}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+  dashboard.style.display =
+    'none';
+
+  kpiGrid.style.display =
+    'none';
+
+  instructions.style.display =
+    'none';
+
+  placeholder.style.display =
+    'none';
+
+  yearDetails.style.display =
+    'block';
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+function renderPublicationYearDetails(publicationYear) {
+  const yearDetails =
+    document.getElementById('yearDetails');
+
+  const dashboard =
+    document.getElementById('dashboardContent');
+
+  const kpiGrid =
+    document.getElementById('kpiGrid');
+
+  const instructions =
+    document.getElementById('instructionsWrap');
+
+  const placeholder =
+    document.getElementById('placeholder');
+
+  const booksOfYear =
+    parsedBooks.filter(function(book) {
+      return Number(book.year) ===
+        Number(publicationYear);
+    });
+
+  if (!booksOfYear.length) {
+    console.warn(
+      'Nessun libro trovato per l’anno: ' +
+      publicationYear
+    );
+    return;
+  }
+
+  const ratedBooks =
+    booksOfYear.filter(function(book) {
+      return Number(book.rating) > 0;
+    });
+
+  const totalPages =
+    booksOfYear.reduce(function(total, book) {
+      return total + (book.pages || 0);
+    }, 0);
+
+  const averageRating =
+    ratedBooks.length
+      ? ratedBooks.reduce(function(total, book) {
+          return total + Number(book.rating);
+        }, 0) / ratedBooks.length
+      : 0;
+
+  const fiveStarBooks =
+    booksOfYear.filter(function(book) {
+      return Number(book.rating) === 5;
+    }).length;
+
+  const t = langs[currentLang];
+
+  document.getElementById('yearDetailsTitle').innerText =
+    currentLang === 'it'
+      ? 'Libri pubblicati nel ' + publicationYear
+      : 'Books published in ' + publicationYear;
+
+  document.getElementById('backLabel').innerText =
+    t.backLabel;
+
+  document.getElementById('detailsBooksLabel').innerText =
+    t.detailsBooksLabel;
+
+  document.getElementById('detailsPagesLabel').innerText =
+    t.detailsPagesLabel;
+
+  document.getElementById('detailsRatingLabel').innerText =
+    t.detailsRatingLabel;
+
+  document.getElementById('detailsFiveStarsLabel').innerText =
+    t.detailsFiveStarsLabel;
+
+  document.getElementById('detailsTitleHeader').innerText =
+    t.detailsTitleHeader;
+
+  document.getElementById('detailsAuthorHeader').innerText =
+    t.detailsAuthorHeader;
+
+  document.getElementById('detailsRatingHeader').innerText =
+    t.detailsRatingHeader;
+
+  document.getElementById('detailsPagesHeader').innerText =
+    t.detailsPagesHeader;
+
+  document.getElementById('detailsShelfHeader').innerText =
+    t.detailsShelfHeader;
+
+  document.getElementById('detailsBooks').innerText =
+    formatNum(booksOfYear.length);
+
+  document.getElementById('detailsPages').innerText =
+    formatNum(totalPages);
+
+  document.getElementById('detailsRating').innerText =
+    ratedBooks.length
+      ? formatNum(averageRating, 2) + ' / 5'
+      : '—';
+
+  document.getElementById('detailsFiveStars').innerText =
+    formatNum(fiveStarBooks);
+
+  const detailsTableBody =
+    document.querySelector(
+      '#yearDetailsTable tbody'
+    );
+
+  detailsTableBody.innerHTML =
+    booksOfYear
+      .slice()
+      .sort(function(a, b) {
+        return a.title.localeCompare(
+          b.title,
+          currentLang === 'it' ? 'it' : 'en'
+        );
+      })
+      .map(function(book) {
+        const shelves =
+          Array.isArray(book.shelves) &&
+          book.shelves.length
+            ? book.shelves.map(function(shelf) {
+                return '<span class="badge">' +
+                  esc(shelf) +
+                  '</span>';
+              }).join(' ')
+            : '—';
+
+        return `
+          <tr>
+            <td>
+              <strong>${esc(book.title)}</strong>
+            </td>
+
+            <td>
+              <span class="badge">
+                ${esc(book.author)}
+              </span>
+            </td>
+
+            <td>
+              ${
+                Number(book.rating) > 0
+                  ? formatNum(
+                      Number(book.rating),
+                      1
+                    ) + ' / 5'
+                  : '—'
+              }
+            </td>
+
+            <td>
+              ${
+                book.pages > 0
+                  ? formatNum(book.pages) +
+                    ' ' +
+                    t.pagesSuffix
+                  : '—'
+              }
+            </td>
+
+            <td>${shelves}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+  dashboard.style.display =
+    'none';
+
+  kpiGrid.style.display =
+    'none';
+
+  instructions.style.display =
+    'none';
+
+  placeholder.style.display =
+    'none';
+
+  yearDetails.style.display =
+    'block';
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+function renderPageCountDetails(pageBucket) {
+  const yearDetails =
+    document.getElementById('yearDetails');
+
+  const dashboard =
+    document.getElementById('dashboardContent');
+
+  const kpiGrid =
+    document.getElementById('kpiGrid');
+
+  const instructions =
+    document.getElementById('instructionsWrap');
+
+  const placeholder =
+    document.getElementById('placeholder');
+
+  let minPages = 0;
+  let maxPages = Infinity;
+
+  if (pageBucket === '1000+') {
+    minPages = 1000;
+  } else {
+    const limits =
+      pageBucket.split('-').map(Number);
+
+    minPages = limits[0];
+    maxPages = limits[1];
+  }
+
+  const booksInBucket =
+    parsedBooks.filter(function(book) {
+      const pages = Number(book.pages) || 0;
+
+      return pages >= minPages &&
+        pages <= maxPages;
+    });
+
+  if (!booksInBucket.length) {
+    console.warn(
+      'Nessun libro trovato nella fascia: ' +
+      pageBucket
+    );
+    return;
+  }
+
+  const ratedBooks =
+    booksInBucket.filter(function(book) {
+      return Number(book.rating) > 0;
+    });
+
+  const totalPages =
+    booksInBucket.reduce(function(total, book) {
+      return total + (Number(book.pages) || 0);
+    }, 0);
+
+  const averageRating =
+    ratedBooks.length
+      ? ratedBooks.reduce(function(total, book) {
+          return total + Number(book.rating);
+        }, 0) / ratedBooks.length
+      : 0;
+
+  const fiveStarBooks =
+    booksInBucket.filter(function(book) {
+      return Number(book.rating) === 5;
+    }).length;
+
+  const t = langs[currentLang];
+
+  document.getElementById('yearDetailsTitle').innerText =
+    currentLang === 'it'
+      ? 'Libri da ' + pageBucket + ' pagine'
+      : 'Books from ' + pageBucket + ' pages';
+
+  document.getElementById('backLabel').innerText =
+    t.backLabel;
+
+  document.getElementById('detailsBooksLabel').innerText =
+    t.detailsBooksLabel;
+
+  document.getElementById('detailsPagesLabel').innerText =
+    t.detailsPagesLabel;
+
+  document.getElementById('detailsRatingLabel').innerText =
+    t.detailsRatingLabel;
+
+  document.getElementById('detailsFiveStarsLabel').innerText =
+    t.detailsFiveStarsLabel;
+
+  document.getElementById('detailsTitleHeader').innerText =
+    t.detailsTitleHeader;
+
+  document.getElementById('detailsAuthorHeader').innerText =
+    t.detailsAuthorHeader;
+
+  document.getElementById('detailsRatingHeader').innerText =
+    t.detailsRatingHeader;
+
+  document.getElementById('detailsPagesHeader').innerText =
+    t.detailsPagesHeader;
+
+  document.getElementById('detailsShelfHeader').innerText =
+    t.detailsShelfHeader;
+
+  document.getElementById('detailsBooks').innerText =
+    formatNum(booksInBucket.length);
+
+  document.getElementById('detailsPages').innerText =
+    formatNum(totalPages);
+
+  document.getElementById('detailsRating').innerText =
+    ratedBooks.length
+      ? formatNum(averageRating, 2) + ' / 5'
+      : '—';
+
+  document.getElementById('detailsFiveStars').innerText =
+    formatNum(fiveStarBooks);
+
+  const tableBody =
+    document.querySelector(
+      '#yearDetailsTable tbody'
+    );
+
+  tableBody.innerHTML =
+    booksInBucket
+      .slice()
+      .sort(function(a, b) {
+        return (Number(b.pages) || 0) -
+          (Number(a.pages) || 0);
+      })
+      .map(function(book) {
+        const shelves =
+          Array.isArray(book.shelves) &&
+          book.shelves.length
+            ? book.shelves.map(function(shelf) {
+                return '<span class="badge">' +
+                  esc(shelf) +
+                  '</span>';
+              }).join(' ')
+            : '—';
+
+        return `
+          <tr>
+            <td>
+              <strong>${esc(book.title)}</strong>
+            </td>
+
+            <td>
+              <span class="badge">
+                ${esc(book.author)}
+              </span>
+            </td>
+
+            <td>
+              ${
+                Number(book.rating) > 0
+                  ? formatNum(
+                      Number(book.rating),
+                      1
+                    ) + ' / 5'
+                  : '—'
+              }
+            </td>
+
+            <td>
+              ${
+                Number(book.pages) > 0
+                  ? formatNum(book.pages) +
+                    ' ' +
+                    t.pagesSuffix
+                  : '—'
+              }
+            </td>
+
+            <td>${shelves}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+  dashboard.style.display =
+    'none';
+
+  kpiGrid.style.display =
+    'none';
+
+  instructions.style.display =
+    'none';
+
+  placeholder.style.display =
+    'none';
+
+  yearDetails.style.display =
+    'block';
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+function renderAuthorDetails(author) {
+  const authorBooks =
+    parsedBooks.filter(function(book) {
+      return String(book.author || '').trim() ===
+        author;
+    });
+
+  if (!authorBooks.length) {
+    console.warn(
+      'Nessun libro trovato per l’autore: ' +
+      author
+    );
+    return;
+  }
+
+  const ratedBooks =
+    authorBooks.filter(function(book) {
+      return Number(book.rating) > 0;
+    });
+
+  const totalPages =
+    authorBooks.reduce(function(total, book) {
+      return total + (Number(book.pages) || 0);
+    }, 0);
+
+  const averageRating =
+    ratedBooks.length
+      ? ratedBooks.reduce(function(total, book) {
+          return total + Number(book.rating);
+        }, 0) / ratedBooks.length
+      : 0;
+
+  const fiveStarBooks =
+    authorBooks.filter(function(book) {
+      return Number(book.rating) === 5;
+    }).length;
+
+  const t = langs[currentLang];
+
+  document.getElementById('yearDetailsTitle').innerText =
+    currentLang === 'it'
+      ? 'Libri di ' + author
+      : 'Books by ' + author;
+
+  document.getElementById('backLabel').innerText =
+    t.backLabel;
+
+  document.getElementById('detailsBooksLabel').innerText =
+    t.detailsBooksLabel;
+
+  document.getElementById('detailsPagesLabel').innerText =
+    t.detailsPagesLabel;
+
+  document.getElementById('detailsRatingLabel').innerText =
+    t.detailsRatingLabel;
+
+  document.getElementById('detailsFiveStarsLabel').innerText =
+    t.detailsFiveStarsLabel;
+
+  document.getElementById('detailsTitleHeader').innerText =
+    t.detailsTitleHeader;
+
+  document.getElementById('detailsAuthorHeader').innerText =
+    t.detailsAuthorHeader;
+
+  document.getElementById('detailsRatingHeader').innerText =
+    t.detailsRatingHeader;
+
+  document.getElementById('detailsPagesHeader').innerText =
+    t.detailsPagesHeader;
+
+  document.getElementById('detailsShelfHeader').innerText =
+    t.detailsShelfHeader;
+
+  document.getElementById('detailsBooks').innerText =
+    formatNum(authorBooks.length);
+
+  document.getElementById('detailsPages').innerText =
+    formatNum(totalPages);
+
+  document.getElementById('detailsRating').innerText =
+    ratedBooks.length
+      ? formatNum(averageRating, 2) + ' / 5'
+      : '—';
+
+  document.getElementById('detailsFiveStars').innerText =
+    formatNum(fiveStarBooks);
+
+  const tableBody =
+    document.querySelector(
+      '#yearDetailsTable tbody'
+    );
+
+  tableBody.innerHTML =
+    authorBooks
+      .slice()
+      .sort(function(a, b) {
+        return a.title.localeCompare(
+          b.title,
+          currentLang === 'it' ? 'it' : 'en'
+        );
+      })
+      .map(function(book) {
+        const shelves =
+          Array.isArray(book.shelves) &&
+          book.shelves.length
+            ? book.shelves.map(function(shelf) {
+                return '<span class="badge">' +
+                  esc(shelf) +
+                  '</span>';
+              }).join(' ')
+            : '—';
+
+        return `
+          <tr>
+            <td>
+              <strong>${esc(book.title)}</strong>
+            </td>
+
+            <td>
+              <span class="badge">
+                ${esc(book.author)}
+              </span>
+            </td>
+
+            <td>
+              ${
+                Number(book.rating) > 0
+                  ? formatNum(
+                      Number(book.rating),
+                      1
+                    ) + ' / 5'
+                  : '—'
+              }
+            </td>
+
+            <td>
+              ${
+                Number(book.pages) > 0
+                  ? formatNum(book.pages) +
+                    ' ' +
+                    t.pagesSuffix
+                  : '—'
+              }
+            </td>
+
+            <td>${shelves}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+  document.getElementById(
+    'dashboardContent'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'kpiGrid'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'instructionsWrap'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'placeholder'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'yearDetails'
+  ).style.display = 'block';
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
 function destroyCharts() {
       Object.keys(charts).forEach(key => {
         if (charts[key]) charts[key].destroy();
@@ -3420,6 +4366,19 @@ document.getElementById('descTopAuthorsPages').innerText = authorsPagesSorted.le
                 options: {
           ...lineOpts,
 
+          onHover: function(event, elements) {
+  const canvas =
+    event.native &&
+    event.native.target;
+
+  if (!canvas) return;
+
+  canvas.style.cursor =
+    elements.length
+      ? 'pointer'
+      : 'default';
+},
+
           onClick: function(event, elements) {
             if (!elements.length) return;
 
@@ -3516,7 +4475,32 @@ charts.pubYear = new Chart(pubYearCtx, {
       y: {
         ticks: { color: chartTextColor() },
         grid: { color: chartGridColor() }
-      }
+            }
+        },
+
+    onHover: function(event, elements, chart) {
+      chart.canvas.style.cursor =
+        elements.length
+          ? 'pointer'
+          : 'default';
+    },
+
+    onClick: function(event, elements) {
+      if (!elements.length) return;
+
+      const index =
+        elements[0].index;
+
+      const publicationYear =
+        pubYearsSorted[index];
+
+      window.location.hash =
+        'publication-year=' +
+        encodeURIComponent(publicationYear);
+
+      renderPublicationYearDetails(
+        publicationYear
+      );
     }
   }
 });
@@ -3543,22 +4527,82 @@ charts.monthRhythm = new Chart(document.getElementById('monthRhythmChart'), {
   options: baseChartOptions()
 });
 
-charts.pageCount = new Chart(document.getElementById('pageCountChart'), {
-  type: 'bar',
-  data: {
-    labels: pageBuckets,
-    datasets: [{ label: t.dsBooksCount, data: pageBucketCounts,
-      backgroundColor: shadeByValue(pageBucketCounts),
-      borderRadius: 8 }]
-  },
-  options: baseChartOptions()
-});
+charts.pageCount = new Chart(
+  document.getElementById('pageCountChart'),
+  {
+    type: 'bar',
+
+    data: {
+      labels: pageBuckets,
+
+      datasets: [{
+        label: t.dsBooksCount,
+        data: pageBucketCounts,
+        backgroundColor:
+          shadeByValue(pageBucketCounts),
+        borderRadius: 8
+      }]
+    },
+
+    options: {
+      ...baseChartOptions(),
+
+      onHover: function(event, elements, chart) {
+        chart.canvas.style.cursor =
+          elements.length
+            ? 'pointer'
+            : 'default';
+      },
+
+      onClick: function(event, elements) {
+        if (!elements.length) return;
+
+        const index =
+          elements[0].index;
+
+        const pageBucket =
+          pageBuckets[index];
+
+        window.location.hash =
+          'page-count=' +
+          encodeURIComponent(pageBucket);
+
+        renderPageCountDetails(
+          pageBucket
+        );
+      }
+    }
+  }
+);
 
       charts.decade = new Chart(document.getElementById('decadeChart'), {
   type: 'bar',
   data: { labels: decadesSorted.map(d => d.label), datasets: [{ label: t.dsAvgRating, data: decadesSorted.map(d => Number(d.avg.toFixed(2))),
     backgroundColor: shadeByValue(decadesSorted.map(d => Number(d.avg.toFixed(2)))), borderRadius: 8 }] },
-  options: decadeOpts
+          options: {
+          ...decadeOpts,
+
+          onClick: function(event, elements) {
+            if (!elements.length) return;
+
+            const clickedIndex = elements[0].index;
+            const selectedLabel =
+              decadesSorted[clickedIndex].label;
+
+            const selectedDecade =
+              parseInt(selectedLabel, 10);
+
+            window.location.hash =
+              `decade=${selectedDecade}`;
+
+            renderDecadeDetails(selectedDecade);
+          },
+
+          onHover: function(event, elements) {
+            event.native.target.style.cursor =
+              elements.length ? 'pointer' : 'default';
+          }
+        }
 });
 charts.publisher = new Chart(document.getElementById('publisherChart'), {
   type: 'bar',
@@ -3568,7 +4612,31 @@ charts.publisher = new Chart(document.getElementById('publisherChart'), {
     backgroundColor: shadeByValue(publishersSorted.map(p => p.count)),
     borderRadius: 8 }]
   },
-  options: { ...baseChartOptions(), indexAxis: 'y' }
+  options: {
+          ...baseChartOptions(),
+
+          indexAxis: 'y',
+
+          onClick: function(event, elements) {
+            if (!elements.length) return;
+
+            const clickedIndex =
+              elements[0].index;
+
+            const selectedPublisher =
+              publishersSorted[clickedIndex].name;
+
+            window.location.hash =
+              `publisher=${encodeURIComponent(selectedPublisher)}`;
+
+            renderPublisherDetails(selectedPublisher);
+          },
+
+          onHover: function(event, elements) {
+            event.native.target.style.cursor =
+              elements.length ? 'pointer' : 'default';
+          }
+        }
 });
       charts.star = new Chart(document.getElementById('starChart'), {
         type: 'bar',
@@ -3617,19 +4685,146 @@ charts.publisher = new Chart(document.getElementById('publisherChart'), {
 
  renderRows('#volumeBooksTable tbody',
   authorsBooksSorted.map(a =>
-    `<tr><td><span class="badge">${esc(a.name)}</span></td><td><strong>${formatNum(a.count)}</strong> ${t.booksSuffix}</td></tr>`
+    `<tr>
+      <td>
+        <span
+          class="badge author-link"
+          data-author="${esc(a.name)}"
+          role="button"
+          tabindex="0"
+        >
+          ${esc(a.name)}
+        </span>
+      </td>
+
+      <td>
+        <strong>${formatNum(a.count)}</strong>
+        ${t.booksSuffix}
+      </td>
+    </tr>`
   )
 );
+
+document
+  .querySelectorAll(
+    '#volumeBooksTable .author-link'
+  )
+  .forEach(function(authorElement) {
+    authorElement.addEventListener(
+      'click',
+      function() {
+        const author =
+          authorElement.dataset.author;
+
+        window.location.hash =
+          'author=' +
+          encodeURIComponent(author);
+
+        renderAuthorDetails(author);
+      }
+    );
+
+    authorElement.addEventListener(
+      'keydown',
+      function(event) {
+        if (
+          event.key === 'Enter' ||
+          event.key === ' '
+        ) {
+          event.preventDefault();
+          authorElement.click();
+        }
+      }
+    );
+  });
+
 renderRows('#volumePagesTable tbody',
   authorsPagesSorted.map(a =>
-    `<tr><td><span class="badge">${esc(a.name)}</span></td><td><strong>${formatNum(a.pages)}</strong> ${t.pagesSuffix}</td></tr>`
+    `<tr>
+      <td>
+        <span
+          class="badge author-link"
+          data-author="${esc(a.name)}"
+          role="button"
+          tabindex="0"
+        >
+          ${esc(a.name)}
+        </span>
+      </td>
+
+      <td>
+        <strong>${formatNum(a.pages)}</strong>
+        ${t.pagesSuffix}
+      </td>
+    </tr>`
   )
 );
-renderRows('#authorsTable tbody',
-  authorsSorted.map(a =>
-    `<tr><td><span class="badge">${esc(a.name)}</span></td><td><strong>${formatNum(a.avg,2)}</strong> / 5</td><td>${formatNum(a.count)} ${t.booksSuffix}</td></tr>`
+
+document
+  .querySelectorAll(
+    '#volumePagesTable .author-link'
   )
+  .forEach(function(authorElement) {
+    authorElement.addEventListener(
+      'click',
+      function() {
+        const author =
+          authorElement.dataset.author;
+
+        window.location.hash =
+          'author=' +
+          encodeURIComponent(author);
+
+        renderAuthorDetails(author);
+      }
+    );
+
+    authorElement.addEventListener(
+      'keydown',
+      function(event) {
+        if (
+          event.key === 'Enter' ||
+          event.key === ' '
+        ) {
+          event.preventDefault();
+          authorElement.click();
+        }
+      }
+    );
+  });
+
+renderRows(
+  '#authorsTable tbody',
+  authorsSorted.map(function(a) {
+    return `
+      <tr>
+        <td>
+          <span
+            class="badge author-link"
+            data-author="${esc(a.name)}"
+            role="button"
+            tabindex="0"
+          >
+            ${esc(a.name)}
+          </span>
+        </td>
+
+        <td>
+          <strong>
+            ${formatNum(a.avg, 2)}
+          </strong>
+          / 5
+        </td>
+
+        <td>
+          ${formatNum(a.count)}
+          ${t.booksSuffix}
+        </td>
+      </tr>
+    `;
+  })
 );
+
 renderRows('#shelvesTable tbody',
   shelvesSorted.map(s =>
     `<tr><td><span class="badge">${esc(s.name)}</span></td><td><strong>${formatNum(s.avg,2)}</strong> / 5</td><td>${formatNum(s.count)} ${t.booksSuffix}</td></tr>`
@@ -3645,11 +4840,79 @@ renderRows('#bestYearsTable tbody',
     `<tr><td><strong>${y.year}</strong></td><td>${formatNum(y.avg,2)} / 5</td><td>${formatNum(y.count)} ${t.yearSuffix}</td></tr>`
   )
 );
-renderRows('#bayesAuthorsTable tbody',
-  bayesianAuthors.map((a,i) =>
-    `<tr><td><strong>#${i+1}</strong></td><td><span class="badge">${esc(a.name)}</span></td><td><strong>${formatNum(a.score,3)} ${t.points}</strong></td><td>${formatNum(a.avg,2)}</td><td>${formatNum(a.count)}</td></tr>`
-  )
+renderRows(
+  '#bayesAuthorsTable tbody',
+  bayesianAuthors.map(function(a, i) {
+    return `
+      <tr>
+        <td>
+          <strong>${i + 1}</strong>
+        </td>
+
+        <td>
+          <span
+            class="badge author-link"
+            data-author="${esc(a.name)}"
+            role="button"
+            tabindex="0"
+          >
+            ${esc(a.name)}
+          </span>
+        </td>
+
+        <td>
+          <strong>
+            ${formatNum(a.score, 3)}
+          </strong>
+          ${t.points}
+        </td>
+
+        <td>
+          ${formatNum(a.avg, 2)}
+        </td>
+
+        <td>
+          ${formatNum(a.count)}
+        </td>
+      </tr>
+    `;
+  })
 );
+
+document
+  .querySelectorAll(
+    '#authorsTable .author-link, ' +
+    '#bayesAuthorsTable .author-link'
+  )
+  .forEach(function(authorElement) {
+    authorElement.addEventListener(
+      'click',
+      function() {
+        const author =
+          authorElement.dataset.author;
+
+        window.location.hash =
+          'author=' +
+          encodeURIComponent(author);
+
+        renderAuthorDetails(author);
+      }
+    );
+
+    authorElement.addEventListener(
+      'keydown',
+      function(event) {
+        if (
+          event.key === 'Enter' ||
+          event.key === ' '
+        ) {
+          event.preventDefault();
+          authorElement.click();
+        }
+      }
+    );
+  });
+
 renderRows('#longestBooksTable tbody',
   longestBooksSorted.map((b,i) =>
     `<tr><td><strong>#${i+1}</strong></td><td><strong>${esc(b.title)}</strong></td><td><span class="badge">${esc(b.author)}</span></td><td><strong>${formatNum(b.pages)}</strong> ${t.pagesSuffix}</td></tr>`
