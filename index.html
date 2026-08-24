@@ -245,6 +245,23 @@
       font-weight: 600;
       font-size: 12px;
     }
+
+    .shelf-link {
+  cursor: pointer;
+}
+
+.shelf-link:hover {
+  filter: brightness(0.95);
+}
+
+    .shelf-link {
+  cursor: pointer;
+}
+
+.shelf-link:hover {
+  filter: brightness(0.95);
+}
+
     .author-link {
   cursor: pointer;
   transition: background 0.15s ease;
@@ -553,6 +570,12 @@
         <p class="muted" id="descMonthRhythm"></p>
   		<canvas id="monthRhythmChart"></canvas>
 	</div>
+
+  <div class="card">
+    <h2 id="lblFormatByYear">Reading formats by year</h2>
+      <p class="muted" id="descFormatByYear">Only books with a recognized format.</p>
+    <canvas id="formatByYearChart"></canvas>
+  </div>
 
   <div class="card"><h2 id="lblPageCount">Books By Page Count</h2>
       <p class="muted" id="descPageCount"></p>
@@ -1770,8 +1793,10 @@ descDecade: 'Your top-rated decade is {decade} with {avg} / 5.',
 descPublisher: 'Your most-read publisher is {publisher} with {count} works.',
 descStar: 'Most of your books are rated {star} stars.',
 descMonthRhythm: 'Looking at all years combined, {month} is the month in which you marked the most books as read: {count} books.',
-lblPageCount: 'Books By Page Count',
-lblNationalityMap: 'Author Nationalities',
+lblPageCount: "Books By Page Count",
+lblFormatByYear: "Reading formats by year",
+descFormatByYear: "Only books with a recognized format.",
+lblNationalityMap: "Author Nationalities",
 mapHint: 'Darker tiles indicate more authors from that country.',
 modalTitle: 'Search author nationalities?',
 btnYesNationality: 'Yes, search',
@@ -1895,8 +1920,10 @@ descDecade: 'Il tuo decennio più apprezzato è {decade} con {avg} / 5.',
 descPublisher: 'Il tuo editore più letto è {publisher} con {count} opere.',
 descStar: 'La maggior parte dei tuoi libri ha {star} stelle.',
 descMonthRhythm: 'Considerando tutti gli anni, il mese in cui hai segnato complessivamente più libri come letti è {month}, con {count} libri.',
-lblPageCount: 'Libri per numero di pagine',
-lblNationalityMap: 'Nazionalità degli autori',
+lblPageCount: "Libri per numero di pagine",
+lblFormatByYear: "Formato delle letture per anno",
+descFormatByYear: "Solo libri con formato riconosciuto.",
+lblNationalityMap: "Nazionalità degli autori",
 mapHint: 'I riquadri più scuri indicano più autori da quel paese.',
 modalTitle: 'Cercare le nazionalità degli autori?',
 btnYesNationality: 'Sì, cerca',
@@ -1988,13 +2015,36 @@ descTopAuthorsPages: 'Il tuo autore più letto è {author} con {pages} pagine.',
     let parsedBooks = [];
     let charts = {};
     let currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    let pageCountScrollY = 0;
     document.documentElement.setAttribute('data-theme', currentTheme);
 
+const detailScrollPositions = {
+  format: 0,
+  pageCount: 0,
+  publisher: 0,
+  rating: 0,
+  nationality: 0
+};
+
     function esc(s){return String(s ?? '').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+    
     function formatNum(n, digits = 0) {
-      const locale = currentLang === 'it' ? 'it-IT' : 'en-US';
-      return Number(n || 0).toLocaleString(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits });
-    }
+  const value = Number(n || 0);
+
+  if (currentLang === 'it') {
+    return value.toLocaleString('it-IT', {
+      useGrouping: true,
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
+  }
+
+  return value.toLocaleString('en-US', {
+    useGrouping: true,
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits
+  });
+}
     function chartTextColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--muted').trim(); }
     function chartGridColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--border').trim(); }
     function chartAccent(){ return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); }
@@ -2102,6 +2152,128 @@ const AUTHOR_NATIONALITY_OVERRIDES = {
   'Dolores García Ruiz': 'Spagna',
   'Cristina Obber': 'Italia',
 };
+
+const PUBLISHER_ALIASES = {
+  "piemme": "Piemme",
+  "edizioni piemme": "Piemme",
+  "edizioni piemme spa": "Piemme",
+  "edizioni piemme s p a": "Piemme",
+
+  "mondadori": "Mondadori",
+  "a mondadori": "Mondadori",
+  "arnoldo mondadori": "Mondadori",
+  "arnoldo mondadori editore": "Mondadori",
+
+  "newton compton": "Newton Compton",
+  "newton compton editori": "Newton Compton",
+  "newton compton editori srl": "Newton Compton",
+
+  "nord": "Nord",
+  "editrice nord": "Nord",
+  "casa editrice nord": "Nord",
+
+  "einaudi": "Einaudi",
+  "einaudi ebook": "Einaudi",
+
+  "garzanti": "Garzanti",
+  "garzanti libri": "Garzanti",
+
+  "salani": "Salani",
+  "salani editore": "Salani",
+
+  "fanucci": "Fanucci",
+  "fanucci editore": "Fanucci",
+
+  "sperling kupfer": "Sperling & Kupfer",
+  "pickwick sperling kupfer": "Sperling & Kupfer",
+
+  "bompiani": "Bompiani",
+  "bompiani ebook": "Bompiani",
+
+  "bur biblioteca univ rizzoli": "Rizzoli"
+};
+
+const UNKNOWN_PUBLISHER = "__UNKNOWN_PUBLISHER__";
+
+function normalizeBinding(value) {
+  const key = String(value || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!key) return null;
+
+  if (
+    key.includes('kindle') ||
+    key.includes('ebook') ||
+    key.includes('e-book') ||
+    key.includes('digital')
+  ) {
+    return 'Ebook';
+  }
+
+  if (
+    key.includes('hardcover') ||
+    key.includes('hardback')
+  ) {
+    return 'Hardcover';
+  }
+
+  if (
+    key.includes('paperback') ||
+    key.includes('mass market')
+  ) {
+    return 'Paperback';
+  }
+
+  return null;
+}
+
+function normalizePublisher(value) {
+  const raw = String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!raw) return UNKNOWN_PUBLISHER;
+
+  const key = raw
+    .toLowerCase()
+    .replace(/[.,]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const selfPublishingAliases = new Set([
+    "independently published",
+    "independently published edition",
+    "self published",
+    "self publishing",
+    "create space",
+    "createspace",
+    "createspace independent publishing platform"
+  ]);
+
+  const nonPublisherValues = new Set([
+    "kindle edition",
+    "paperback",
+    "hardcover",
+    "mass market paperback",
+    "ebook",
+    "audio cd",
+    "audiobook"
+  ]);
+
+  if (selfPublishingAliases.has(key)) {
+    return "Autopubblicato";
+  }
+
+  if (nonPublisherValues.has(key)) {
+    return UNKNOWN_PUBLISHER;
+  }
+
+  return PUBLISHER_ALIASES[key] || raw;
+}
 
 function normalizeHistoricalCountry(name) {
   const map = {
@@ -2340,6 +2512,23 @@ function renderNationalityMap(books) {
     tooltip.style.top = e.clientY + 'px';
   };
   node.onmouseleave = () => { tooltip.style.opacity = '0'; };
+  node.style.cursor = 'pointer';
+
+node.onclick = () => {
+  const countryName =
+    node.getAttribute('name') || code;
+
+  window.location.hash =
+    'country=' +
+    encodeURIComponent(code);
+
+  saveDetailScrollPosition('nationality');
+
+  renderCountryAuthors(
+    code,
+    countryName
+  );
+};
 }
 
   const pathsById = svgRoot.querySelectorAll('path[id]');
@@ -2607,6 +2796,9 @@ async function fetchNationalities(uniqueAuthors, onProgress) {
   const authorsToSearch = [];
 
   uniqueAuthors.forEach(author => {
+      if (PLACEHOLDER_NAMES.test(String(author).trim())) {
+    return;
+  }
     if (AUTHOR_NATIONALITY_OVERRIDES[author]) {
       overriddenAuthors[author] = AUTHOR_NATIONALITY_OVERRIDES[author];
     } else {
@@ -2646,7 +2838,7 @@ async function fetchNationalities(uniqueAuthors, onProgress) {
     } catch (e) { /* resta come prima */ }
     await new Promise(r => setTimeout(r, 100));
   }
-  if (onProgress) onProgress(65, 'Risolvo i paesi mancanti...');
+  if (onProgress) onProgress(65, 'Risoluzione dei paesi mancanti...');
 
   const birthPlaceIds = [...new Set(Object.values(authorResult).filter(r => r.status === 'needsbirthplace').map(r => r.birthPlaceId))];
   const placeEntities = await getClaimsBatch(birthPlaceIds);
@@ -2655,7 +2847,7 @@ async function fetchNationalities(uniqueAuthors, onProgress) {
     const countryIds = claimValueIds(placeEntities[placeId], 'P17');
     if (countryIds.length > 0) placeToCountry[placeId] = countryIds[0];
   }
-  if (onProgress) onProgress(75, 'Risolvo i nomi delle nazionalità...');
+  if (onProgress) onProgress(75, 'Risoluzione delle nazionalità...');
 
   const authorToCountryIds = {};
   for (const [author, result] of Object.entries(authorResult)) {
@@ -2700,6 +2892,8 @@ return authorToNationality;
         'kpiAvgLabel','kpiAvgNote','kpiBestYearLabel','kpiBestYearNote','kpiAuthorsLabel','kpiAuthorsNote','lblPagesTimeline','lblBooksTimeline','lblPubYearChart',
         'lblMonthRhythm',
         'lblPageCount',
+        'lblFormatByYear',
+        'descFormatByYear',
         'lblNationalityMap',
         'mapHint',
         'lblDecadeChart','lblPublisherChart',
@@ -2783,7 +2977,13 @@ return authorToNationality;
       const authorIdx = headers.indexOf('Author');
       const ratingIdx = headers.indexOf('My Rating');
       const pagesIdx = headers.indexOf('Number of Pages');
-      const shelvesIdx = headers.indexOf('Bookshelves');
+      const bindingIdx = headers.indexOf('Binding');
+
+      const customShelvesIdx =
+        headers.indexOf('Bookshelves');;
+
+const exclusiveShelfIdx =
+  headers.indexOf('Exclusive Shelf');
       const pubYearIdx = headers.indexOf('Original Publication Year');
       const fallbackYearIdx = headers.indexOf('Year Published');
       const dateReadIdx = headers.indexOf('Date Read');
@@ -2803,11 +3003,22 @@ return authorToNationality;
         const data = lines[i];
         if (data.length <= Math.max(titleIdx, authorIdx, ratingIdx)) continue;
         const rawPages = pagesIdx >= 0 ? data[pagesIdx] : '';
+        const rawBinding = bindingIdx >= 0 ? data[bindingIdx] : '';
         const rawPubYear = pubYearIdx >= 0 ? data[pubYearIdx] : '';
         const rawFallbackYear = fallbackYearIdx >= 0 ? data[fallbackYearIdx] : '';
         const rawDateRead = dateReadIdx >= 0 ? data[dateReadIdx] : '';
-        const rawShelves = shelvesIdx >= 0 ? data[shelvesIdx] : '';
+        const rawCustomShelves =
+  customShelvesIdx >= 0
+    ? data[customShelvesIdx]
+    : '';
+
+const rawExclusiveShelf =
+  exclusiveShelfIdx >= 0
+    ? data[exclusiveShelfIdx]
+    : '';
         const rawPublisher = publisherIdx >= 0 ? data[publisherIdx] : '';
+        if (i <= 20) {
+}
 	const readCount = readCountIdx >= 0 ? parseInt(data[readCountIdx]) || 0 : 0;
         const rating = parseFloat(data[ratingIdx]) || 0;
         const pages = parseFloat(rawPages) || 0;
@@ -2829,16 +3040,41 @@ if (rawDateRead && typeof rawDateRead === 'string') {
           author: data[authorIdx] || '',
           rating,
           pages,
-          shelves: rawShelves ? rawShelves.split(',').map(s => s.trim()).filter(Boolean) : [],
+          shelves: rawCustomShelves
+  ? rawCustomShelves
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+  : [],
+
+exclusiveShelf:
+  rawExclusiveShelf.trim().toLowerCase(),
           year,
           readYear,
 	  readMonth,
-	  publisher: rawPublisher.trim(),
-	  readCount,});
+binding: normalizeBinding(rawBinding),
+publisher: normalizePublisher(rawPublisher),
+readCount,
+});
       }
       parsedBooks = books;
 
-const uniqueAuthorNames = [...new Set(books.map(b => b.author).filter(Boolean))];
+      parsedBooks = parsedBooks.filter(book =>
+  book.publisher !== UNKNOWN_PUBLISHER
+);
+
+const uniqueAuthorNames = [...new Set(
+  books
+    .filter(isReadBook)
+    .map(b => b.author)
+    .filter(function(author) {
+      return author &&
+        !PLACEHOLDER_NAMES.test(
+          String(author).trim()
+        );
+    })
+)];
+
 const modal = document.getElementById('nationalityModal');
 const modalDesc = document.getElementById('modalDesc');
 const modalButtons = document.getElementById('modalButtons');
@@ -2997,7 +3233,10 @@ document.getElementById('btnYesNationality').onclick = async () => {
     .map(function(book) {
       const shelves = book.shelves.length
         ? book.shelves.map(function(shelf) {
-            return '<span class="badge">' +
+            return '<span class="badge shelf-link"' +
+              ' data-shelf="' + esc(shelf) + '"' +
+              ' role="button"' +
+              ' tabindex="0">' +
               esc(shelf) +
               '</span>';
           }).join(' ')
@@ -3010,7 +3249,12 @@ document.getElementById('btnYesNationality').onclick = async () => {
           </td>
 
           <td>
-            <span class="badge">
+            <span
+              class="badge author-link"
+              data-author="${esc(book.author)}"
+              role="button"
+              tabindex="0"
+            >
               ${esc(book.author)}
             </span>
           </td>
@@ -3034,14 +3278,90 @@ document.getElementById('btnYesNationality').onclick = async () => {
           <td>${shelves}</td>
         </tr>
       `;
-    })
+               })
     .join('');
+
+      document
+    .querySelectorAll(
+      '#yearDetailsTable .author-link'
+    )
+    .forEach(function(authorElement) {
+      authorElement.addEventListener(
+        'click',
+        function() {
+          const selectedAuthor =
+            authorElement.dataset.author;
+
+          renderAuthorDetails(
+            selectedAuthor,
+            function() {
+              renderYearDetails(year);
+            },
+            currentLang === 'it'
+              ? 'Torna ai libri dell’anno'
+              : 'Back to yearly books'
+          );
+        }
+      );
+
+      authorElement.addEventListener(
+        'keydown',
+        function(event) {
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+            event.preventDefault();
+            authorElement.click();
+          }
+        }
+      );
+    });
+
+  document
+    .querySelectorAll(
+      '#yearDetailsTable .shelf-link'
+    )
+    .forEach(function(shelfElement) {
+      shelfElement.addEventListener(
+        'click',
+        function() {
+          const shelf =
+            shelfElement.dataset.shelf;
+
+          renderShelfDetails(
+  shelf,
+  function() {
+    renderYearDetails(year);
+  },
+  currentLang === 'it'
+    ? 'Torna ai libri dell’anno'
+    : 'Back to yearly books'
+);
+        }
+      );
+
+      shelfElement.addEventListener(
+        'keydown',
+        function(event) {
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+            event.preventDefault();
+            shelfElement.click();
+          }
+        }
+      );
+    });
 
   dashboard.style.display = 'none';
   kpiGrid.style.display = 'none';
   instructions.style.display = 'none';
   placeholder.style.display = 'none';
   yearDetails.style.display = 'block';
+
+  configureDetailsBackButton('publisher');
 
   window.scrollTo({
     top: 0,
@@ -3056,8 +3376,9 @@ function renderRatingDetails(rating) {
   const instructions = document.getElementById('instructionsWrap');
   const placeholder = document.getElementById('placeholder');
 
-        const booksWithRating = parsedBooks.filter(function(book) {
-    return Number(book.rating) === Number(rating);
+    const booksWithRating = parsedBooks.filter(function(book) {
+    return isReadBook(book) &&
+      Number(book.rating) === Number(rating);
   });
 
   if (!booksWithRating.length) {
@@ -3111,7 +3432,10 @@ function renderRatingDetails(rating) {
     .map(function(book) {
       const shelves = book.shelves.length
         ? book.shelves.map(function(shelf) {
-            return '<span class="badge">' +
+            return '<span class="badge shelf-link"' +
+              ' data-shelf="' + esc(shelf) + '"' +
+              ' role="button"' +
+              ' tabindex="0">' +
               esc(shelf) +
               '</span>';
           }).join(' ')
@@ -3124,7 +3448,12 @@ function renderRatingDetails(rating) {
           </td>
 
           <td>
-            <span class="badge">
+            <span
+              class="badge author-link"
+              data-author="${esc(book.author)}"
+              role="button"
+              tabindex="0"
+            >
               ${esc(book.author)}
             </span>
           </td>
@@ -3147,11 +3476,88 @@ function renderRatingDetails(rating) {
     })
     .join('');
 
+
+      document
+    .querySelectorAll(
+      '#yearDetailsTable .author-link'
+    )
+    .forEach(function(authorElement) {
+      authorElement.addEventListener(
+        'click',
+        function() {
+          const author =
+            authorElement.dataset.author;
+
+          renderAuthorDetails(
+            author,
+            function() {
+              renderRatingDetails(rating);
+            },
+            currentLang === 'it'
+              ? 'Torna alle valutazioni'
+              : 'Back to ratings'
+          );
+        }
+      );
+
+      authorElement.addEventListener(
+        'keydown',
+        function(event) {
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+            event.preventDefault();
+            authorElement.click();
+          }
+        }
+      );
+    });
+
+  document
+    .querySelectorAll(
+      '#yearDetailsTable .shelf-link'
+    )
+    .forEach(function(shelfElement) {
+      shelfElement.addEventListener(
+        'click',
+        function() {
+          const shelf =
+            shelfElement.dataset.shelf;
+
+          renderShelfDetails(
+            shelf,
+            function() {
+              renderRatingDetails(rating);
+            },
+            currentLang === 'it'
+              ? 'Torna alle valutazioni'
+              : 'Back to ratings'
+          );
+        }
+      );
+
+      shelfElement.addEventListener(
+        'keydown',
+        function(event) {
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+            event.preventDefault();
+            shelfElement.click();
+          }
+        }
+      );
+    });
+
   dashboard.style.display = 'none';
   kpiGrid.style.display = 'none';
   instructions.style.display = 'none';
   placeholder.style.display = 'none';
-  yearDetails.style.display = 'block';
+    yearDetails.style.display = 'block';
+
+  configureDetailsBackButton('rating');
 
   window.scrollTo({
     top: 0,
@@ -3338,7 +3744,11 @@ function renderDecadeDetails(decade) {
   });
 }
 
-function renderPublisherDetails(publisher) {
+function renderPublisherDetails(
+  publisher,
+  backAction = null,
+  backText = null
+) {
   const yearDetails =
     document.getElementById('yearDetails');
 
@@ -3356,7 +3766,8 @@ function renderPublisherDetails(publisher) {
 
   const booksOfPublisher =
     parsedBooks.filter(function(book) {
-      return String(book.publisher || '').trim() === publisher;
+      return isReadBook(book) &&
+        String(book.publisher || '').trim() === publisher;
     });
 
   if (!booksOfPublisher.length) {
@@ -3396,7 +3807,7 @@ function renderPublisherDetails(publisher) {
       : 'Books published by ' + publisher;
 
   document.getElementById('backLabel').innerText =
-    t.backLabel;
+    backText || t.backLabel;
 
   document.getElementById('detailsBooksLabel').innerText =
     t.detailsBooksLabel;
@@ -3456,7 +3867,10 @@ function renderPublisherDetails(publisher) {
           Array.isArray(book.shelves) &&
           book.shelves.length
             ? book.shelves.map(function(shelf) {
-                return '<span class="badge">' +
+                                return '<span class="badge shelf-link"' +
+                  ' data-shelf="' + esc(shelf) + '"' +
+                  ' role="button"' +
+                  ' tabindex="0">' +
                   esc(shelf) +
                   '</span>';
               }).join(' ')
@@ -3469,7 +3883,12 @@ function renderPublisherDetails(publisher) {
             </td>
 
             <td>
-              <span class="badge">
+              <span
+                class="badge author-link"
+                data-author="${esc(book.author)}"
+                role="button"
+                tabindex="0"
+              >
                 ${esc(book.author)}
               </span>
             </td>
@@ -3496,6 +3915,80 @@ function renderPublisherDetails(publisher) {
       })
       .join('');
 
+        document
+    .querySelectorAll(
+      '#yearDetailsTable .author-link'
+    )
+    .forEach(function(authorElement) {
+      authorElement.addEventListener(
+        'click',
+        function() {
+          const author =
+            authorElement.dataset.author;
+
+          renderAuthorDetails(
+            author,
+            function() {
+              renderPublisherDetails(publisher);
+            },
+            currentLang === 'it'
+              ? 'Torna agli editori'
+              : 'Back to publishers'
+          );
+        }
+      );
+
+      authorElement.addEventListener(
+        'keydown',
+        function(event) {
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+            event.preventDefault();
+            authorElement.click();
+          }
+        }
+      );
+    });
+
+  document
+    .querySelectorAll(
+      '#yearDetailsTable .shelf-link'
+    )
+    .forEach(function(shelfElement) {
+      shelfElement.addEventListener(
+        'click',
+        function() {
+          const shelf =
+            shelfElement.dataset.shelf;
+
+          renderShelfDetails(
+            shelf,
+            function() {
+              renderPublisherDetails(publisher);
+            },
+            currentLang === 'it'
+              ? 'Torna agli editori'
+              : 'Back to publishers'
+          );
+        }
+      );
+
+      shelfElement.addEventListener(
+        'keydown',
+        function(event) {
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+            event.preventDefault();
+            shelfElement.click();
+          }
+        }
+      );
+    });
+
   dashboard.style.display =
     'none';
 
@@ -3508,8 +4001,10 @@ function renderPublisherDetails(publisher) {
   placeholder.style.display =
     'none';
 
-  yearDetails.style.display =
+    yearDetails.style.display =
     'block';
+
+  configureDetailsBackButton(null);
 
   window.scrollTo({
     top: 0,
@@ -3705,7 +4200,16 @@ function renderPublicationYearDetails(publicationYear) {
   });
 }
 
-function renderPageCountDetails(pageBucket) {
+function renderPageCountDetails(
+  pageBucket,
+  backAction = null,
+  backText = null
+) {
+  window.scrollTo({
+    top: 0,
+    behavior: 'auto'
+  });
+
   const yearDetails =
     document.getElementById('yearDetails');
 
@@ -3734,11 +4238,13 @@ function renderPageCountDetails(pageBucket) {
     maxPages = limits[1];
   }
 
-  const booksInBucket =
+    const booksInBucket =
     parsedBooks.filter(function(book) {
-      const pages = Number(book.pages) || 0;
+      const pages =
+        Number(book.pages) || 0;
 
-      return pages >= minPages &&
+      return isReadBook(book) &&
+        pages >= minPages &&
         pages <= maxPages;
     });
 
@@ -3780,7 +4286,7 @@ function renderPageCountDetails(pageBucket) {
       : 'Books from ' + pageBucket + ' pages';
 
   document.getElementById('backLabel').innerText =
-    t.backLabel;
+    backText || t.backLabel;
 
   document.getElementById('detailsBooksLabel').innerText =
     t.detailsBooksLabel;
@@ -3840,7 +4346,10 @@ function renderPageCountDetails(pageBucket) {
           Array.isArray(book.shelves) &&
           book.shelves.length
             ? book.shelves.map(function(shelf) {
-                return '<span class="badge">' +
+                                return '<span class="badge shelf-link"' +
+                  ' data-shelf="' + esc(shelf) + '"' +
+                  ' role="button"' +
+                  ' tabindex="0">' +
                   esc(shelf) +
                   '</span>';
               }).join(' ')
@@ -3853,7 +4362,12 @@ function renderPageCountDetails(pageBucket) {
             </td>
 
             <td>
-              <span class="badge">
+              <span
+                class="badge author-link"
+                data-author="${esc(book.author)}"
+                role="button"
+                tabindex="0"
+              >
                 ${esc(book.author)}
               </span>
             </td>
@@ -3882,8 +4396,86 @@ function renderPageCountDetails(pageBucket) {
             <td>${shelves}</td>
           </tr>
         `;
-      })
+        })
       .join('');
+
+  document
+    .querySelectorAll(
+      '#yearDetailsTable .author-link'
+    )
+    .forEach(function(authorElement) {
+      authorElement.addEventListener(
+        'click',
+        function() {
+          const author =
+            authorElement.dataset.author;
+
+          renderAuthorDetails(
+  author,
+  function() {
+    renderPageCountDetails(
+      pageBucket
+    );
+  },
+  currentLang === 'it'
+    ? 'Torna alle pagine'
+    : 'Back to page count'
+);
+        }
+      );
+
+      authorElement.addEventListener(
+        'keydown',
+        function(event) {
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+            event.preventDefault();
+            authorElement.click();
+          }
+        }
+      );
+    });
+
+  document
+    .querySelectorAll(
+      '#yearDetailsTable .shelf-link'
+    )
+    .forEach(function(shelfElement) {
+      shelfElement.addEventListener(
+        'click',
+        function() {
+          const shelf =
+            shelfElement.dataset.shelf;
+
+          renderShelfDetails(
+            shelf,
+            function() {
+              renderPageCountDetails(
+                pageBucket
+              );
+            },
+            currentLang === 'it'
+              ? 'Torna alle pagine'
+              : 'Back to page count'
+          );
+        }
+      );
+
+      shelfElement.addEventListener(
+        'keydown',
+        function(event) {
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+            event.preventDefault();
+            shelfElement.click();
+          }
+        }
+      );
+    });
 
   dashboard.style.display =
     'none';
@@ -3897,18 +4489,22 @@ function renderPageCountDetails(pageBucket) {
   placeholder.style.display =
     'none';
 
-  yearDetails.style.display =
+    yearDetails.style.display =
     'block';
 
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  });
+  configureDetailsBackButton(
+  backAction
+);
 }
 
-function renderAuthorDetails(author) {
+function renderAuthorDetails(
+  author,
+  backAction = null,
+  backText = null
+) {
+
   const authorBooks =
-    parsedBooks.filter(function(book) {
+    getReadBooks().filter(function(book) {
       return String(book.author || '').trim() ===
         author;
     });
@@ -3951,7 +4547,7 @@ function renderAuthorDetails(author) {
       : 'Books by ' + author;
 
   document.getElementById('backLabel').innerText =
-    t.backLabel;
+  backText || t.backLabel;
 
   document.getElementById('detailsBooksLabel').innerText =
     t.detailsBooksLabel;
@@ -4008,12 +4604,17 @@ function renderAuthorDetails(author) {
           currentLang === 'it' ? 'it' : 'en'
         );
       })
+
+
       .map(function(book) {
         const shelves =
           Array.isArray(book.shelves) &&
           book.shelves.length
             ? book.shelves.map(function(shelf) {
-                return '<span class="badge">' +
+                return '<span class="badge shelf-link"' +
+                  ' data-shelf="' + esc(shelf) + '"' +
+                  ' role="button"' +
+                  ' tabindex="0">' +
                   esc(shelf) +
                   '</span>';
               }).join(' ')
@@ -4058,6 +4659,43 @@ function renderAuthorDetails(author) {
       })
       .join('');
 
+  document
+  .querySelectorAll(
+    '#yearDetailsTable .shelf-link'
+  )
+  .forEach(function(shelfElement) {
+    shelfElement.addEventListener(
+      'click',
+      function() {
+        const shelf =
+          shelfElement.dataset.shelf;
+
+        renderShelfDetails(
+          shelf,
+          function() {
+            renderAuthorDetails(author);
+          },
+          currentLang === 'it'
+            ? 'Torna ai libri dell’autore'
+            : 'Back to author books'
+        );
+      }
+    );
+
+    shelfElement.addEventListener(
+      'keydown',
+      function(event) {
+        if (
+          event.key === 'Enter' ||
+          event.key === ' '
+        ) {
+          event.preventDefault();
+          shelfElement.click();
+        }
+      }
+    );
+  });
+
   document.getElementById(
     'dashboardContent'
   ).style.display = 'none';
@@ -4078,10 +4716,670 @@ function renderAuthorDetails(author) {
     'yearDetails'
   ).style.display = 'block';
 
+  configureDetailsBackButton(
+    backAction
+  );
+
   window.scrollTo({
     top: 0,
     behavior: 'smooth'
   });
+}
+
+function renderCountryAuthors(countryCode, countryName) {
+  const readBooks =
+    parsedBooks.filter(isReadBook);
+
+  const authorsMap = {};
+
+  readBooks.forEach(function(book) {
+    if (
+      !book.author ||
+      book.authorNationalityISO !== countryCode
+    ) {
+      return;
+    }
+
+    const author =
+      String(book.author).trim();
+
+    if (
+      !author ||
+      PLACEHOLDER_NAMES.test(author)
+    ) {
+      return;
+    }
+
+    if (!authorsMap[author]) {
+      authorsMap[author] = {
+        books: 0,
+        pages: 0
+      };
+    }
+
+    authorsMap[author].books += 1;
+    authorsMap[author].pages +=
+      Number(book.pages) || 0;
+  });
+
+  const authors =
+    Object.entries(authorsMap)
+      .map(function(entry) {
+        return {
+          name: entry[0],
+          books: entry[1].books,
+          pages: entry[1].pages
+        };
+      })
+      .sort(function(a, b) {
+        return b.books - a.books ||
+          a.name.localeCompare(
+            b.name,
+            currentLang === 'it' ? 'it' : 'en'
+          );
+      });
+
+  if (!authors.length) {
+    console.warn(
+      'Nessun autore trovato per il Paese: ' +
+      countryName
+    );
+    return;
+  }
+
+  const totalBooks =
+    authors.reduce(function(total, author) {
+      return total + author.books;
+    }, 0);
+
+  const totalPages =
+    authors.reduce(function(total, author) {
+      return total + author.pages;
+    }, 0);
+
+  const titleElement =
+    document.getElementById('yearDetailsTitle');
+
+  if (titleElement) {
+    titleElement.innerText =
+      currentLang === 'it'
+        ? 'Autori  —  ' + countryName
+        : 'Authors from ' + countryName;
+  }
+
+  const detailsBooksLabel =
+    document.getElementById('detailsBooksLabel');
+
+  if (detailsBooksLabel) {
+    detailsBooksLabel.innerText =
+      currentLang === 'it'
+        ? 'Autori'
+        : 'Authors';
+  }
+
+  const detailsPagesLabel =
+    document.getElementById('detailsPagesLabel');
+
+  if (detailsPagesLabel) {
+    detailsPagesLabel.innerText =
+      currentLang === 'it'
+        ? 'Libri'
+        : 'Books';
+  }
+
+  const detailsRatingLabel =
+    document.getElementById('detailsRatingLabel');
+
+  if (detailsRatingLabel) {
+    detailsRatingLabel.innerText =
+      currentLang === 'it'
+        ? 'Pagine'
+        : 'Pages';
+  }
+
+  const detailsFiveStarsLabel =
+    document.getElementById(
+      'detailsFiveStarsLabel'
+    );
+
+  if (detailsFiveStarsLabel) {
+    detailsFiveStarsLabel.innerText =
+      currentLang === 'it'
+        ? 'Paese'
+        : 'Country';
+  }
+
+  const detailsTitleHeader =
+    document.getElementById('detailsTitleHeader');
+
+  if (detailsTitleHeader) {
+    detailsTitleHeader.innerText =
+      currentLang === 'it'
+        ? 'Autore'
+        : 'Author';
+  }
+
+  const detailsAuthorHeader =
+    document.getElementById('detailsAuthorHeader');
+
+  if (detailsAuthorHeader) {
+    detailsAuthorHeader.innerText =
+      currentLang === 'it'
+        ? 'Libri'
+        : 'Books';
+  }
+
+  const detailsRatingHeader =
+    document.getElementById(
+      'detailsRatingHeader'
+    );
+
+  if (detailsRatingHeader) {
+    detailsRatingHeader.innerText =
+      currentLang === 'it'
+        ? 'Pagine'
+        : 'Pages';
+  }
+
+  const detailsPagesHeader =
+    document.getElementById(
+      'detailsPagesHeader'
+    );
+
+  if (detailsPagesHeader) {
+    detailsPagesHeader.innerText = '';
+  }
+
+  const detailsShelfHeader =
+    document.getElementById(
+      'detailsShelfHeader'
+    );
+
+  if (detailsShelfHeader) {
+    detailsShelfHeader.innerText = '';
+  }
+
+  document.getElementById('detailsBooks').innerText =
+    formatNum(authors.length);
+
+  document.getElementById('detailsPages').innerText =
+    formatNum(totalBooks);
+
+  document.getElementById('detailsRating').innerText =
+    formatNum(totalPages);
+
+  document.getElementById('detailsFiveStars').innerText =
+    countryName;
+
+  const tableBody =
+    document.querySelector(
+      '#yearDetailsTable tbody'
+    );
+
+  tableBody.innerHTML =
+    authors.map(function(author) {
+      return `
+        <tr>
+          <td>
+  <span
+    class="badge author-link"
+    data-author="${esc(author.name)}"
+    role="button"
+    tabindex="0"
+  >
+    ${esc(author.name)}
+  </span>
+</td>
+
+          <td>
+            <strong>
+              ${formatNum(author.books)}
+            </strong>
+          </td>
+
+          <td>
+            ${formatNum(author.pages)}
+          </td>
+
+          <td></td>
+          <td></td>
+        </tr>
+      `;
+    }).join('');
+
+      document
+    .querySelectorAll(
+      '#yearDetailsTable .author-link'
+    )
+    .forEach(function(authorElement) {
+      authorElement.addEventListener(
+        'click',
+        function() {
+          const author =
+            authorElement.dataset.author;
+
+          window.location.hash =
+            'author=' +
+            encodeURIComponent(author);
+
+          renderAuthorDetails(author);
+        }
+      );
+
+      authorElement.addEventListener(
+        'keydown',
+        function(event) {
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+            event.preventDefault();
+            authorElement.click();
+          }
+        }
+      );
+    });
+
+  document.getElementById(
+    'dashboardContent'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'kpiGrid'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'instructionsWrap'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'placeholder'
+  ).style.display = 'none';
+
+  document.getElementById(
+  'yearDetails'
+).style.display = 'block';
+
+configureDetailsBackButton('nationality');
+
+window.scrollTo({
+  top: 0,
+  behavior: 'auto'
+});
+}
+
+function renderShelfDetails(
+  shelf,
+  backAction = null,
+  backText = null
+) {
+  const shelfBooks =
+    getReadBooks().filter(function(book) {
+      return Array.isArray(book.shelves) &&
+        book.shelves.some(function(bookShelf) {
+          return String(bookShelf).trim() ===
+            shelf;
+        });
+    });
+
+  if (!shelfBooks.length) {
+    console.warn(
+      'Nessun libro trovato nello scaffale: ' +
+      shelf
+    );
+    return;
+  }
+
+  const t = langs[currentLang];
+
+  const ratedBooks =
+    shelfBooks.filter(function(book) {
+      return Number(book.rating) > 0;
+    });
+
+  const totalPages =
+    shelfBooks.reduce(function(total, book) {
+      return total + (Number(book.pages) || 0);
+    }, 0);
+
+  const averageRating =
+    ratedBooks.length
+      ? ratedBooks.reduce(function(total, book) {
+          return total + Number(book.rating);
+        }, 0) / ratedBooks.length
+      : 0;
+
+  const fiveStarBooks =
+    shelfBooks.filter(function(book) {
+      return Number(book.rating) === 5;
+    }).length;
+
+  document.getElementById(
+    'yearDetailsTitle'
+  ).innerText =
+    currentLang === 'it'
+      ? 'Scaffale — ' + shelf
+      : 'Shelf — ' + shelf;
+
+  document.getElementById(
+  'backLabel'
+  ).innerText = backText || t.backLabel;
+
+  document.getElementById(
+    'detailsBooksLabel'
+  ).innerText = t.detailsBooksLabel;
+
+  document.getElementById(
+    'detailsPagesLabel'
+  ).innerText = t.detailsPagesLabel;
+
+  document.getElementById(
+    'detailsRatingLabel'
+  ).innerText = t.detailsRatingLabel;
+
+  document.getElementById(
+    'detailsFiveStarsLabel'
+  ).innerText = t.detailsFiveStarsLabel;
+
+  document.getElementById(
+    'detailsTitleHeader'
+  ).innerText = t.detailsTitleHeader;
+
+  document.getElementById(
+    'detailsAuthorHeader'
+  ).innerText = t.detailsAuthorHeader;
+
+  document.getElementById(
+    'detailsRatingHeader'
+  ).innerText = t.detailsRatingHeader;
+
+  document.getElementById(
+    'detailsPagesHeader'
+  ).innerText = t.detailsPagesHeader;
+
+  document.getElementById(
+    'detailsShelfHeader'
+  ).innerText = t.detailsShelfHeader;
+
+  document.getElementById(
+    'detailsBooks'
+  ).innerText = formatNum(shelfBooks.length);
+
+  document.getElementById(
+    'detailsPages'
+  ).innerText = formatNum(totalPages);
+
+  document.getElementById(
+    'detailsRating'
+  ).innerText =
+    ratedBooks.length
+      ? formatNum(averageRating, 2) + ' / 5'
+      : '—';
+
+  document.getElementById(
+    'detailsFiveStars'
+  ).innerText = formatNum(fiveStarBooks);
+
+  const tableBody =
+    document.querySelector(
+      '#yearDetailsTable tbody'
+    );
+
+  tableBody.innerHTML =
+    shelfBooks
+      .slice()
+      .sort(function(a, b) {
+        return a.title.localeCompare(
+          b.title,
+          currentLang === 'it' ? 'it' : 'en'
+        );
+      })
+      .map(function(book) {
+        return `
+          <tr>
+            <td>
+              <strong>${esc(book.title)}</strong>
+            </td>
+
+            <td>
+              <span
+              class="badge author-link"
+              data-author="${esc(book.author)}"
+              role="button"
+              tabindex="0"
+              >
+                ${esc(book.author)}
+              </span>
+            </td>
+
+            <td>
+              ${
+                book.rating > 0
+                  ? formatNum(book.rating, 1) +
+                    ' / 5'
+                  : '—'
+              }
+            </td>
+
+            <td>
+              ${
+                book.pages > 0
+                  ? formatNum(book.pages) +
+                    ' ' +
+                    t.pagesSuffix
+                  : '—'
+              }
+            </td>
+
+            <td>
+              <span class="badge">
+                ${esc(shelf)}
+              </span>
+            </td>
+          </tr>
+        `;
+            })
+      .join('');
+
+    document
+    .querySelectorAll(
+      '#yearDetailsTable .author-link'
+    )
+    .forEach(function(authorElement) {
+      authorElement.addEventListener(
+        'click',
+        function() {
+          const author =
+            authorElement.dataset.author;
+
+          renderAuthorDetails(
+            author,
+            function() {
+              renderShelfDetails(
+                shelf,
+                backAction,
+                backText
+              );
+            },
+            currentLang === 'it'
+              ? 'Torna allo scaffale'
+              : 'Back to shelf'
+          );
+        }
+      );
+
+      authorElement.addEventListener(
+        'keydown',
+        function(event) {
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+            event.preventDefault();
+            authorElement.click();
+          }
+        }
+      );
+    });
+
+  document
+    .querySelectorAll(
+      '#yearDetailsTable .shelf-link'
+    )
+    .forEach(function(shelfElement) {
+      shelfElement.addEventListener(
+        'click',
+        function() {
+          const shelf =
+            shelfElement.dataset.shelf;
+
+          renderShelfDetails(
+            shelf,
+            function() {
+              renderAuthorDetails(
+                author,
+                backAction,
+                backText
+              );
+            },
+            currentLang === 'it'
+              ? 'Torna all’autore'
+              : 'Back to author'
+          );
+        }
+      );
+
+      shelfElement.addEventListener(
+        'keydown',
+        function(event) {
+          if (
+            event.key === 'Enter' ||
+            event.key === ' '
+          ) {
+            event.preventDefault();
+            shelfElement.click();
+          }
+        }
+      );
+    });
+
+  document.getElementById(
+    'dashboardContent'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'kpiGrid'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'instructionsWrap'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'placeholder'
+  ).style.display = 'none';
+
+    document.getElementById(
+    'yearDetails'
+  ).style.display = 'block';
+
+  const detailsBackButton =
+    document.querySelector(
+      '#yearDetails button'
+    );
+
+  if (detailsBackButton) {
+    detailsBackButton.onclick = function() {
+  if (typeof backAction === 'function') {
+    backAction();
+    return;
+  }
+
+  document.getElementById(
+    'yearDetails'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'dashboardContent'
+  ).style.display = 'grid';
+
+  document.getElementById(
+    'kpiGrid'
+  ).style.display = 'grid';
+};
+
+  }
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
+
+function saveDetailScrollPosition(type) {
+  detailScrollPositions[type] = window.scrollY;
+}
+
+function restoreDetailScrollPosition(type) {
+  const y = detailScrollPositions[type];
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.scrollTo({
+        top: y,
+        behavior: 'auto'
+      });
+    });
+  });
+}
+
+function configureDetailsBackButton(type) {
+  const button = document.getElementById('backToDashboard');
+
+  if (!button) return;
+
+  button.onclick = function(event) {
+    event.preventDefault();
+
+    if (typeof type === 'function') {
+      type();
+      return;
+    }
+
+    const yearDetails =
+      document.getElementById('yearDetails');
+
+    const dashboard =
+      document.getElementById('dashboardContent');
+
+    const kpiGrid =
+      document.getElementById('kpiGrid');
+
+    const instructions =
+      document.getElementById('instructionsWrap');
+
+    const placeholder =
+      document.getElementById('placeholder');
+
+    yearDetails.style.display = 'none';
+    dashboard.style.display = 'grid';
+    kpiGrid.style.display = 'grid';
+    instructions.style.display = 'none';
+    placeholder.style.display = 'none';
+
+    window.location.hash = '';
+
+    const savedPosition =
+      detailScrollPositions[type] || 0;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo({
+          top: savedPosition,
+          behavior: 'auto'
+        });
+      });
+    });
+  };
 }
 
 function destroyCharts() {
@@ -4115,7 +5413,208 @@ function destroyCharts() {
       return best;
     }
 
-    function renderDashboard(books) {
+  function isReadBook(book) {
+  return String(book.exclusiveShelf || '')
+    .trim()
+    .toLowerCase() === 'read';
+}
+
+function getReadBooks() {
+  return parsedBooks.filter(isReadBook);
+}
+
+function renderFormatDetails(year, format, selectedBooks) {
+  if (!selectedBooks.length) return;
+
+  const yearDetails = document.getElementById('yearDetails');
+  const dashboard = document.getElementById('dashboardContent');
+  const kpiGrid = document.getElementById('kpiGrid');
+  const instructions = document.getElementById('instructionsWrap');
+  const placeholder = document.getElementById('placeholder');
+  const t = langs[currentLang];
+
+  document.getElementById('yearDetailsTitle').innerText =
+    `${format} — ${year}`;
+
+  document.getElementById('backLabel').innerText = t.backLabel;
+  document.getElementById('detailsBooksLabel').innerText = t.detailsBooksLabel;
+  document.getElementById('detailsPagesLabel').innerText = t.detailsPagesLabel;
+  document.getElementById('detailsRatingLabel').innerText = t.detailsRatingLabel;
+  document.getElementById('detailsFiveStarsLabel').innerText =
+    t.detailsFiveStarsLabel;
+
+  document.getElementById('detailsTitleHeader').innerText =
+    t.detailsTitleHeader;
+  document.getElementById('detailsAuthorHeader').innerText =
+    t.detailsAuthorHeader;
+  document.getElementById('detailsRatingHeader').innerText =
+    t.detailsRatingHeader;
+  document.getElementById('detailsPagesHeader').innerText =
+    t.detailsPagesHeader;
+  document.getElementById('detailsShelfHeader').innerText =
+    t.detailsShelfHeader;
+
+  const ratedBooks = selectedBooks.filter(
+    book => Number(book.rating) > 0
+  );
+
+  const totalPages = selectedBooks.reduce(
+    (sum, book) => sum + (Number(book.pages) || 0),
+    0
+  );
+
+  const averageRating = ratedBooks.length
+    ? ratedBooks.reduce(
+        (sum, book) => sum + Number(book.rating),
+        0
+      ) / ratedBooks.length
+    : 0;
+
+  const fiveStarBooks = selectedBooks.filter(
+    book => Number(book.rating) === 5
+  ).length;
+
+  document.getElementById('detailsBooks').innerText =
+    formatNum(selectedBooks.length);
+
+  document.getElementById('detailsPages').innerText =
+    formatNum(totalPages);
+
+  document.getElementById('detailsRating').innerText =
+    ratedBooks.length
+      ? `${formatNum(averageRating, 2)} / 5`
+      : t.noData;
+
+  document.getElementById('detailsFiveStars').innerText =
+    formatNum(fiveStarBooks);
+
+const detailsTableBody = document.querySelector(
+  '#yearDetailsTable tbody'
+);
+
+detailsTableBody.innerHTML = selectedBooks
+  .slice()
+  .sort((a, b) =>
+    a.title.localeCompare(
+      b.title,
+      currentLang === 'it' ? 'it' : 'en'
+    )
+  )
+  .map(book => {
+    const shelves =
+      book.shelves && book.shelves.length
+        ? book.shelves
+            .map(
+              shelf =>
+                `<span
+                  class="badge shelf-link"
+                  data-shelf="${esc(shelf)}"
+                  role="button"
+                  tabindex="0"
+                >${esc(shelf)}</span>`
+            )
+            .join(' ')
+        : '—';
+
+    return `
+      <tr>
+        <td><strong>${esc(book.title)}</strong></td>
+
+        <td>
+          <span
+            class="badge author-link"
+            data-author="${esc(book.author)}"
+            role="button"
+            tabindex="0"
+          >${esc(book.author)}</span>
+        </td>
+
+        <td>
+          ${
+            Number(book.rating) > 0
+              ? formatNum(book.rating, 1)
+              : ''
+          }
+        </td>
+
+        <td>
+          ${
+            Number(book.pages) > 0
+              ? formatNum(book.pages)
+              : ''
+          }
+        </td>
+
+        <td>${shelves}</td>
+      </tr>
+    `;
+  })
+  .join('');
+
+  document
+  .querySelectorAll('#yearDetailsTable .author-link')
+  .forEach(authorElement => {
+    authorElement.addEventListener('click', () => {
+      const author = authorElement.dataset.author;
+      renderAuthorDetails(
+        author,
+        () => renderFormatDetails(year, format, selectedBooks),
+        currentLang === 'it'
+          ? 'Torna al formato'
+          : 'Back to format'
+      );
+    });
+
+    authorElement.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        authorElement.click();
+      }
+    });
+  });
+
+document
+  .querySelectorAll('#yearDetailsTable .shelf-link')
+  .forEach(shelfElement => {
+    shelfElement.addEventListener('click', () => {
+      const shelf = shelfElement.dataset.shelf;
+      renderShelfDetails(
+        shelf,
+        () => renderFormatDetails(year, format, selectedBooks),
+        currentLang === 'it'
+          ? 'Torna al formato'
+          : 'Back to format'
+      );
+    });
+
+    shelfElement.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        shelfElement.click();
+      }
+    });
+  });
+
+  dashboard.style.display = 'none';
+  kpiGrid.style.display = 'none';
+  instructions.style.display = 'none';
+  placeholder.style.display = 'none';
+  yearDetails.style.display = 'block';
+
+  configureDetailsBackButton('format');
+
+  window.location.hash =
+    `format-${encodeURIComponent(format)}-${year}`;
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'auto'
+    });
+}    
+
+function renderDashboard(books) {
+        books = books.filter(isReadBook);
+
       const t = langs[currentLang];
       const locale = currentLang === 'it' ? 'it-IT' : 'en-US';
       document.getElementById('placeholder').style.display = 'none';
@@ -4135,6 +5634,7 @@ function destroyCharts() {
       const shelfUsage = {};
       const authorGroups = {};
       const publisherGroups = {};
+      const formatYearGroups = {};
       const authorCountsTotal = {};
       const authorPagesTotal = {};
       const stars = { 5:0, 4:0, 3:0, 2:0, 1:0 };
@@ -4183,22 +5683,63 @@ function destroyCharts() {
   }
 }
 
-if (b.publisher) {
-  if (!publisherGroups[b.publisher]) publisherGroups[b.publisher] = { count: 0 };
+if (
+  b.publisher &&
+  b.publisher !== UNKNOWN_PUBLISHER
+) {
+  if (!publisherGroups[b.publisher]) {
+    publisherGroups[b.publisher] = { count: 0 };
+  }
+
   publisherGroups[b.publisher].count += 1;
 }
 
+if (b.readYear && b.binding) {
+  if (!formatYearGroups[b.readYear]) {
+    formatYearGroups[b.readYear] = {
+      Ebook: 0,
+      Paperback: 0,
+      Hardcover: 0
+    };
+  }
+
+  if (
+    formatYearGroups[b.readYear][b.binding] !== undefined
+  ) {
+    formatYearGroups[b.readYear][b.binding] += 1;
+  }
+}
+
 b.shelves.forEach(shelf => {
-          if (!shelf) return;
-          if (!['to-read', 'currently-reading', 'read'].includes(shelf)) {
-            shelfUsage[shelf] = (shelfUsage[shelf] || 0) + 1;
-            if (b.rating > 0) {
-              if (!shelfGroups[shelf]) shelfGroups[shelf] = { totalRating: 0, count: 0 };
-              shelfGroups[shelf].totalRating += b.rating;
-              shelfGroups[shelf].count += 1;
-            }
-          }
-        });
+  if (!shelf) return;
+
+  const normalizedShelf =
+    String(shelf)
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-');
+
+  if (normalizedShelf === 'to-read') {
+    return;
+  }
+
+  shelfUsage[shelf] =
+    (shelfUsage[shelf] || 0) + 1;
+
+  if (b.rating > 0) {
+    if (!shelfGroups[shelf]) {
+      shelfGroups[shelf] = {
+        totalRating: 0,
+        count: 0
+      };
+    }
+
+    shelfGroups[shelf].totalRating +=
+      b.rating;
+
+    shelfGroups[shelf].count += 1;
+  }
+});
       });
 
       const distinctAuthorsCount = Object.keys(authorCountsTotal).length;
@@ -4439,7 +5980,78 @@ document.getElementById('descTopAuthorsPages').innerText = authorsPagesSorted.le
       decadeOpts.indexAxis = 'y';
       decadeOpts.scales.x.min = minDecadeAvg;
       decadeOpts.scales.x.max = 5;
-		const pubYearCtx = document.getElementById('pubYearChart').getContext('2d');
+
+      const formatYears = Object.keys(formatYearGroups)
+  .sort((a, b) => Number(a) - Number(b));
+
+charts.formatByYear = new Chart(
+  document.getElementById('formatByYearChart'),
+  {
+    type: 'bar',
+    data: {
+      labels: formatYears,
+      datasets: [
+        {
+          label: 'Ebook',
+          data: formatYears.map(year => formatYearGroups[year].Ebook),
+          backgroundColor: '#facc15',
+          stack: 'formats'
+        },
+        {
+          label: 'Paperback',
+          data: formatYears.map(year => formatYearGroups[year].Paperback),
+          backgroundColor: '#ca8a04',
+          stack: 'formats'
+        },
+        {
+          label: 'Hardcover',
+          data: formatYears.map(year => formatYearGroups[year].Hardcover),
+          backgroundColor: '#92400e',
+          stack: 'formats'
+        }
+      ]
+    },
+    options: {
+      ...baseChartOptions(),
+      interaction: {
+        mode: 'nearest',
+        intersect: true
+      },
+      onHover(event, elements) {
+        event.native.target.style.cursor = elements.length ? 'pointer' : 'default';
+      },
+      onClick(event, elements) {
+        if (!elements.length) return;
+
+        const element = elements[0];
+        const year = Number(formatYears[element.index]);
+        const format = this.data.datasets[element.datasetIndex].label;
+
+        const selectedBooks = books.filter(book =>
+          Number(book.readYear) === year && book.binding === format
+        );
+
+        saveDetailScrollPosition('format');
+        renderFormatDetails(year, format, selectedBooks);
+      },
+      scales: {
+        x: {
+          stacked: true,
+          ticks: { color: chartTextColor() },
+          grid: { color: chartGridColor() }
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          ticks: { color: chartTextColor() },
+          grid: { color: chartGridColor() }
+        }
+      }
+    }
+  }
+);
+
+const pubYearCtx = document.getElementById('pubYearChart').getContext('2d');
 const minYear = pubYearsSorted[0];
 const maxYear = pubYearsSorted[pubYearsSorted.length - 1];
 
@@ -4561,19 +6173,22 @@ charts.pageCount = new Chart(
           elements[0].index;
 
         const pageBucket =
-          pageBuckets[index];
+  pageBuckets[index];
 
-        window.location.hash =
-          'page-count=' +
-          encodeURIComponent(pageBucket);
+pageCountScrollY = window.scrollY;
+detailScrollPositions.pageCount = pageCountScrollY;
 
-        renderPageCountDetails(
-          pageBucket
-        );
+window.location.hash =
+  'page-count=' +
+  encodeURIComponent(pageBucket);
+
+renderPageCountDetails(pageBucket);
       }
     }
   }
 );
+
+
 
       charts.decade = new Chart(document.getElementById('decadeChart'), {
   type: 'bar',
@@ -4627,8 +6242,9 @@ charts.publisher = new Chart(document.getElementById('publisherChart'), {
               publishersSorted[clickedIndex].name;
 
             window.location.hash =
-              `publisher=${encodeURIComponent(selectedPublisher)}`;
+            `publisher=${encodeURIComponent(selectedPublisher)}`;
 
+            saveDetailScrollPosition('publisher');
             renderPublisherDetails(selectedPublisher);
           },
 
@@ -4638,6 +6254,7 @@ charts.publisher = new Chart(document.getElementById('publisherChart'), {
           }
         }
 });
+
       charts.star = new Chart(document.getElementById('starChart'), {
         type: 'bar',
         data: {
@@ -4668,6 +6285,7 @@ charts.publisher = new Chart(document.getElementById('publisherChart'), {
             window.location.hash =
               `rating=${selectedRating}`;
 
+              saveDetailScrollPosition('rating');
             renderRatingDetails(selectedRating);
           },
 
@@ -4924,36 +6542,31 @@ renderRows('#rereadBooksTable tbody',
   )
 );
 
-renderRows('#favoritesTable tbody',
-  perfectBooks.slice(0, 7).map(b =>
-    `<tr><td>${esc(b.title)}</td><td><span class="badge">${esc(b.author)}</span></td><td>${b.year || t.notSpecified}</td></tr>`
-  )
+renderRows(
+  '#favoritesTable tbody',
+  perfectBooks
+    .slice(0, 7)
+    .map(function(b) {
+      return (
+        '<tr>' +
+          '<td>' +
+            esc(b.title) +
+          '</td>' +
+          '<td>' +
+            '<span class="badge">' +
+              esc(b.author) +
+            '</span>' +
+          '</td>' +
+          '<td>' +
+            (b.year || t.notSpecified) +
+          '</td>' +
+        '</tr>'
+      );
+    })
 );
+
 renderNationalityMap(books);
-    }
-
-    document
-  .getElementById('backToDashboard')
-  .addEventListener('click', function() {
-    window.location.hash = '';
-
-    document.getElementById('yearDetails').style.display =
-      'none';
-
-    document.getElementById('dashboardContent').style.display =
-      'grid';
-
-    document.getElementById('kpiGrid').style.display =
-      'grid';
-
-    document.getElementById('instructionsWrap').style.display =
-      'none';
-
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  });
+}
 
 setLanguage('en');
   </script>
